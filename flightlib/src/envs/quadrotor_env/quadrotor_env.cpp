@@ -13,11 +13,14 @@ QuadrotorEnv::QuadrotorEnv(const std::string &cfg_path)
     lin_vel_coeff_(0.0),
     ang_vel_coeff_(0.0),
     act_coeff_(0.0),
-    goal_state_((Vector<quadenv::kNObs>() << 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0,
+    goal_state_((Vector<quadenv::kNObs>() << 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0,
                  0.0, 0.0, 0.0, 0.0, 0.0)
                   .finished()) {
   // load configuration file
   YAML::Node cfg_ = YAML::LoadFile(cfg_path);
+
+  std::random_device rd;
+  random_gen_ = std::mt19937(rd());
 
   quadrotor_ptr_ = std::make_shared<Quadrotor>();
   // update dynamics
@@ -32,7 +35,7 @@ QuadrotorEnv::QuadrotorEnv(const std::string &cfg_path)
   };
 
   // define input and output dimension for the environment
-  obs_dim_ = quadenv::kNObs;
+  obs_dim_ = quadenv::kNObs * 2;
   act_dim_ = quadenv::kNAct;
 
   Scalar mass = quadrotor_ptr_->getMass();
@@ -67,6 +70,9 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
     quad_state_.x(QS::ATTY) = uniform_dist_(random_gen_);
     quad_state_.x(QS::ATTZ) = uniform_dist_(random_gen_);
     quad_state_.qx /= quad_state_.qx.norm();
+    
+    std::uniform_real_distribution<Scalar> altitude_dist(3.0, 9.0);
+    goal_state_(QS::POSZ) = altitude_dist(random_gen_);
   }
   // reset quadrotor with random states
   quadrotor_ptr_->reset(quad_state_);
@@ -80,6 +86,18 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
   return true;
 }
 
+// bool QuadrotorEnv::getObs(Ref<Vector<>> obs) {
+//   quadrotor_ptr_->getState(&quad_state_);
+
+//   // convert quaternion to euler angle
+//   Vector<3> euler_zyx = quad_state_.q().toRotationMatrix().eulerAngles(2, 1, 0);
+//   // quaternionToEuler(quad_state_.q(), euler);
+//   quad_obs_ << quad_state_.p, euler_zyx, quad_state_.v, quad_state_.w, goal_state_;
+
+//   // obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
+//   return true;
+// }
+
 bool QuadrotorEnv::getObs(Ref<Vector<>> obs) {
   quadrotor_ptr_->getState(&quad_state_);
 
@@ -89,6 +107,8 @@ bool QuadrotorEnv::getObs(Ref<Vector<>> obs) {
   quad_obs_ << quad_state_.p, euler_zyx, quad_state_.v, quad_state_.w;
 
   obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
+    obs.segment<quadenv::kNObs>(quadenv::kObs + quadenv::kNObs) = goal_state_;
+  // obs(quadenv::kNObs) = goal_state_(QS::POSZ); // add goal state to observation vector
   return true;
 }
 
@@ -110,7 +130,8 @@ Scalar QuadrotorEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
   Scalar pos_reward =
     pos_coeff_ * (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
                   goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-                   .squaredNorm();
+                   .squaredNorm()*2;
+
   // - orientation tracking
   Scalar ori_reward =
     ori_coeff_ * (quad_obs_.segment<quadenv::kNOri>(quadenv::kOri) -
