@@ -72,6 +72,10 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
     quad_state_.qx /= quad_state_.qx.norm();
     
     std::uniform_real_distribution<Scalar> altitude_dist(3.0, 9.0);
+    std::uniform_real_distribution<Scalar> xy_dist(-2.0, 2.0);
+
+    goal_state_(QS::POSX) = xy_dist(random_gen_);
+    goal_state_(QS::POSY) = xy_dist(random_gen_);
     goal_state_(QS::POSZ) = altitude_dist(random_gen_);
   }
   // reset quadrotor with random states
