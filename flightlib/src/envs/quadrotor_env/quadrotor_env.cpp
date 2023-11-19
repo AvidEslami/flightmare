@@ -35,7 +35,12 @@ QuadrotorEnv::QuadrotorEnv(const std::string &cfg_path)
   };
 
   // define input and output dimension for the environment
-  obs_dim_ = quadenv::kNObs * 2;
+  // obs_dim_ = quadenv::kNObs * 2;
+
+  // NEW APPROACH: Let us just focus on relative positions
+  obs_dim_ = quadenv::kNObs;
+
+
   act_dim_ = quadenv::kNAct;
 
   Scalar mass = quadrotor_ptr_->getMass();
@@ -110,9 +115,15 @@ bool QuadrotorEnv::getObs(Ref<Vector<>> obs) {
   // quaternionToEuler(quad_state_.q(), euler);
   quad_obs_ << quad_state_.p, euler_zyx, quad_state_.v, quad_state_.w;
 
-  obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
-    obs.segment<quadenv::kNObs>(quadenv::kObs + quadenv::kNObs) = goal_state_;
+  // obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
+  //   obs.segment<quadenv::kNObs>(quadenv::kObs + quadenv::kNObs) = goal_state_;
   // obs(quadenv::kNObs) = goal_state_(QS::POSZ); // add goal state to observation vector
+
+
+  // NEW APPROACH: Let us just focus on relative positions
+  //               This lets us reduce model size and improve performance/generalization speed
+  obs.segment<quadenv::kNObs>(quadenv::kObs) = goal_state_.segment<quadenv::kNObs>(quadenv::kObs) - quad_obs_.segment<quadenv::kNObs>(quadenv::kObs);
+
   return true;
 }
 
@@ -167,6 +178,13 @@ Scalar QuadrotorEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
 bool QuadrotorEnv::isTerminalState(Scalar &reward) {
   if (quad_state_.x(QS::POSZ) <= 0.02) {
     reward = -0.02;
+    return true;
+  }
+  // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
+  if ((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
+       goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
+        .squaredNorm() < 0.1) {
+    reward = 10.0;
     return true;
   }
   reward = 0.0;
