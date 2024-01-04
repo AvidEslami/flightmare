@@ -7,6 +7,7 @@
 // flightlib
 #include "flightlib/envs/env_base.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_env.hpp"
+#include "flightlib/envs/quadrotor_env/quadrotor_hover_env.hpp"
 #include "flightlib/envs/test_env.hpp"
 #include "flightlib/envs/vec_env.hpp"
 
@@ -31,6 +32,7 @@ PYBIND11_MODULE(flightgym, m) {
     .def("getObsDim", &VecEnv<QuadrotorEnv>::getObsDim)
     .def("getActDim", &VecEnv<QuadrotorEnv>::getActDim)
     .def("getExtraInfoNames", &VecEnv<QuadrotorEnv>::getExtraInfoNames)
+    // .def("getEpisodeLength", &VecEnv<QuadrotorEnv>::getEpisodeLength)
     .def("__repr__", [](const VecEnv<QuadrotorEnv>& a) {
       return "RPG Drone Racing Environment";
     });
@@ -39,4 +41,26 @@ PYBIND11_MODULE(flightgym, m) {
     .def(py::init<>())
     .def("reset", &TestEnv<QuadrotorEnv>::reset)
     .def("__repr__", [](const TestEnv<QuadrotorEnv>& a) { return "Test Env"; });
+
+  py::class_<VecEnv<QuadrotorHoverEnv>>(m, "QuadrotorHoverEnv_v1")
+    .def(py::init<>())
+    .def(py::init<const std::string&>())
+    .def(py::init<const std::string&, const bool>())
+    .def("reset", &VecEnv<QuadrotorHoverEnv>::reset)
+    .def("step", &VecEnv<QuadrotorHoverEnv>::step)
+    .def("testStep", &VecEnv<QuadrotorHoverEnv>::testStep)
+    .def("setSeed", &VecEnv<QuadrotorHoverEnv>::setSeed)
+    .def("close", &VecEnv<QuadrotorHoverEnv>::close)
+    .def("isTerminalState", &VecEnv<QuadrotorHoverEnv>::isTerminalState)
+    .def("curriculumUpdate", &VecEnv<QuadrotorHoverEnv>::curriculumUpdate)
+    .def("connectUnity", &VecEnv<QuadrotorHoverEnv>::connectUnity)
+    .def("disconnectUnity", &VecEnv<QuadrotorHoverEnv>::disconnectUnity)
+    .def("getNumOfEnvs", &VecEnv<QuadrotorHoverEnv>::getNumOfEnvs)
+    .def("getObsDim", &VecEnv<QuadrotorHoverEnv>::getObsDim)
+    .def("getActDim", &VecEnv<QuadrotorHoverEnv>::getActDim)
+    .def("getExtraInfoNames", &VecEnv<QuadrotorHoverEnv>::getExtraInfoNames)
+    // .def("getEpisodeLength", &VecEnv<QuadrotorHoverEnv>::getEpisodeLength)
+    .def("__repr__", [](const VecEnv<QuadrotorHoverEnv>& a) {
+      return "RPG Test Environment";
+    });
 }
