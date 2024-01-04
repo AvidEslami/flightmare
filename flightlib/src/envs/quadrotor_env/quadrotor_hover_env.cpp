@@ -90,9 +90,21 @@ bool QuadrotorHoverEnv::reset(Ref<Vector<>> obs, const bool random) {
     quad_state_.setZero();
     quad_state_.x(QS::POSZ) = 5.0;
 
-    goal_state_(QS::POSX) = 2.0;
+    if (trial_num == 0) {
+      goal_state_(QS::POSX) = 3.0;
+    }
+    else if (trial_num == 1) {
+      goal_state_(QS::POSX) = 6.0;
+    }
+    else if (trial_num == 2) {
+      goal_state_(QS::POSX) = 15.0;
+    }
+    else {
+      goal_state_(QS::POSX) = 0.0;
+    }
+    // goal_state_(QS::POSX) = 2.0;
     goal_state_(QS::POSY) = 0.0;
-    goal_state_(QS::POSZ) = trial_num+1;
+    goal_state_(QS::POSZ) = 5;
   }
 
   trial_num += 1;

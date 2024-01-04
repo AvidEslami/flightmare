@@ -77,7 +77,7 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
     quad_state_.qx /= quad_state_.qx.norm();
     
     std::uniform_real_distribution<Scalar> altitude_dist(3.0, 9.0);
-    std::uniform_real_distribution<Scalar> xy_dist(-2.0, 2.0);
+    std::uniform_real_distribution<Scalar> xy_dist(-3.0, 3.0);
 
     goal_state_(QS::POSX) = xy_dist(random_gen_);
     goal_state_(QS::POSY) = xy_dist(random_gen_);
@@ -181,12 +181,12 @@ bool QuadrotorEnv::isTerminalState(Scalar &reward) {
     return true;
   }
   // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
-  if ((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
-       goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.1) {
-    reward = 10.0;
-    return true;
-  }
+  // if ((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
+  //      goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
+  //       .squaredNorm() < 0.1) {
+  //   reward = 10.0;
+  //   return true;
+  // }
   reward = 0.0;
   return false;
 }

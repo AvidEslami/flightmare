@@ -137,7 +137,7 @@ bool UnityBridge::setScene(const SceneID& scene_id) {
     return false;
   }
   // logger_.info("Scene ID is set to %d.", scene_id);
-  settings_.scene_id = scene_id;
+  settings_.scene_id = 2;
   return true;
 }
 
