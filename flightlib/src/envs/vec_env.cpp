@@ -181,6 +181,7 @@ template<typename EnvBase>
 bool VecEnv<EnvBase>::connectUnity(void) {
   if (unity_bridge_ptr_ == nullptr) return false;
   unity_ready_ = unity_bridge_ptr_->connectUnity(scene_id_);
+  // std::cout << "unity_ready_ = " << unity_ready_ << std::endl;
   return unity_ready_;
 }
 
@@ -218,5 +219,6 @@ void VecEnv<EnvBase>::curriculumUpdate(void) {
 // IMPORTANT. Otherwise:
 // Segmentation fault (core dumped)
 template class VecEnv<QuadrotorEnv>;
+template class VecEnv<QuadrotorHoverEnv>;
 
 }  // namespace flightlib

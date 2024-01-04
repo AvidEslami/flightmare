@@ -15,6 +15,7 @@
 #include "flightlib/common/types.hpp"
 #include "flightlib/envs/env_base.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_env.hpp"
+#include "flightlib/envs/quadrotor_env/quadrotor_hover_env.hpp"
 
 namespace flightlib {
 
@@ -84,7 +85,7 @@ class VecEnv {
 
   // Flightmare(Unity3D)
   std::shared_ptr<UnityBridge> unity_bridge_ptr_;
-  SceneID scene_id_{UnityScene::WAREHOUSE};
+  SceneID scene_id_{UnityScene::GARAGE};
   bool unity_ready_{false};
   bool unity_render_{false};
   RenderMessage_t unity_output_;
