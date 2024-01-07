@@ -3,6 +3,7 @@
 #include "flightlib/bridges/unity_bridge.hpp"
 #include "flightlib/common/command.hpp"
 #include "flightlib/common/logger.hpp"
+#include "flightlib/common/timer.hpp"
 #include "flightlib/common/quad_state.hpp"
 #include "flightlib/common/types.hpp"
 #include "flightlib/envs/env_base.hpp"

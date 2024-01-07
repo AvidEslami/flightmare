@@ -4,6 +4,14 @@ namespace flightlib {
 
 int trial_num = 0;
 
+flightlib::Timer myTimer("myTimer", "starter_module");
+
+flightlib::Scalar time_elapsed;
+
+bool terminal_reached = false;
+
+bool toced = false;
+
 QuadrotorHoverEnv::QuadrotorHoverEnv()
   : QuadrotorHoverEnv(getenv("FLIGHTMARE_PATH") +
                  std::string("/flightlib/configs/quadrotor_env.yaml")) {}
@@ -56,72 +64,97 @@ QuadrotorHoverEnv::QuadrotorHoverEnv(const std::string &cfg_path)
 QuadrotorHoverEnv::~QuadrotorHoverEnv() {}
 
 bool QuadrotorHoverEnv::reset(Ref<Vector<>> obs, const bool random) {
-  quad_state_.setZero();
-  quad_act_.setZero();
-
-  // quad_state_.x(QS::POSX) = 0.0;
-  // quad_state_.x(QS::POSY) = 0.0;
-  // quad_state_.x(QS::POSZ) = 3.0;
-  // quad_state_.x(QS::VELX) = 0.0;
-  // quad_state_.x(QS::VELY) = 0.0;
-  // quad_state_.x(QS::VELZ) = 0.0;
-  // quad_state_.x(QS::ATTW) = 0.0;
-  // quad_state_.x(QS::ATTX) = 0.0;
-  // quad_state_.x(QS::ATTY) = 0.0;
-  // quad_state_.x(QS::ATTZ) = 0.0;
-  // // quad_state_.qx /= quad_state_.qx.norm();
-
-  // if (trial_num == 0) {
-  //   goal_state_(QS::POSX) = 3.0;
-  // }
-  // else if (trial_num == 1) {
-  //   goal_state_(QS::POSX) = 3.0;
-  // }
-  // else if (trial_num == 2) {
-  //   goal_state_(QS::POSX) = 3.0;
-  // }
-  // else {
-  //   goal_state_(QS::POSX) = 10.0;
-  // }
-  // goal_state_(QS::POSY) = 0.0;
-  // goal_state_(QS::POSZ) = 3.0;
-  if (random) {
+  if (terminal_reached == false) {
+    // toc here if num trial > 0
+    if (!toced) {
+      if (trial_num > 0) {
+        myTimer.toc();
+        time_elapsed = myTimer.last();
+        std::cout << "Elapsed time: (1)" << time_elapsed << std::endl;
+      }
+      toced = true;
+    }
 
     quad_state_.setZero();
-    quad_state_.x(QS::POSZ) = 5.0;
+    quad_act_.setZero();
 
-    if (trial_num == 0) {
-      goal_state_(QS::POSX) = 3.0;
+    // quad_state_.x(QS::POSX) = 0.0;
+    // quad_state_.x(QS::POSY) = 0.0;
+    // quad_state_.x(QS::POSZ) = 3.0;
+    // quad_state_.x(QS::VELX) = 0.0;
+    // quad_state_.x(QS::VELY) = 0.0;
+    // quad_state_.x(QS::VELZ) = 0.0;
+    // quad_state_.x(QS::ATTW) = 0.0;
+    // quad_state_.x(QS::ATTX) = 0.0;
+    // quad_state_.x(QS::ATTY) = 0.0;
+    // quad_state_.x(QS::ATTZ) = 0.0;
+    // // quad_state_.qx /= quad_state_.qx.norm();
+
+    // if (trial_num == 0) {
+    //   goal_state_(QS::POSX) = 3.0;
+    // }
+    // else if (trial_num == 1) {
+    //   goal_state_(QS::POSX) = 3.0;
+    // }
+    // else if (trial_num == 2) {
+    //   goal_state_(QS::POSX) = 3.0;
+    // }
+    // else {
+    //   goal_state_(QS::POSX) = 10.0;
+    // }
+    // goal_state_(QS::POSY) = 0.0;
+    // goal_state_(QS::POSZ) = 3.0;
+    if (random) {
+
+      quad_state_.setZero();
+      quad_state_.x(QS::POSZ) = 5.0;
+
+      if (trial_num == 0) {
+        goal_state_(QS::POSX) = 0.0;
+      }
+      else if (trial_num == 1) {
+        goal_state_(QS::POSX) = 3.0;
+      }
+      else if (trial_num == 2) {
+        goal_state_(QS::POSX) = 6.0;
+      }
+      else if (trial_num == 3) {
+        goal_state_(QS::POSX) = 15.0;
+      }
+      else {
+        goal_state_(QS::POSX) = 0.0;
+      }
+
+      goal_state_(QS::POSY) = 0.0;
+      goal_state_(QS::POSZ) = 5.0;
     }
-    else if (trial_num == 1) {
-      goal_state_(QS::POSX) = 6.0;
-    }
-    else if (trial_num == 2) {
-      goal_state_(QS::POSX) = 15.0;
-    }
-    else {
-      goal_state_(QS::POSX) = 0.0;
-    }
-    // goal_state_(QS::POSX) = 2.0;
-    goal_state_(QS::POSY) = 0.0;
-    goal_state_(QS::POSZ) = 5;
+    
+
+    trial_num += 1;
+    std::cout << "trial_num: " << trial_num << std::endl;
+    // Print Starting Position and Goal Position
+    std::cout << "Starting Position: " << quad_state_.x(QS::POSX) << ", " << quad_state_.x(QS::POSY) << ", " << quad_state_.x(QS::POSZ) << std::endl;
+    std::cout << "Goal Position: " << goal_state_(QS::POSX) << ", " << goal_state_(QS::POSY) << ", " << goal_state_(QS::POSZ) << std::endl;
+    // reset quadrotor with random states
+
+    // tic (start timer)
+    toced = false;
+    myTimer.tic();
+    quadrotor_ptr_->reset(quad_state_);
+
+    // reset control command
+    cmd_.t = 0.0;
+    cmd_.thrusts.setZero();
+
+    // obtain observations
+    getObs(obs);
+    return true;
   }
-
-  trial_num += 1;
-  std::cout << "trial_num: " << trial_num << std::endl;
-  // Print Starting Position and Goal Position
-  std::cout << "Starting Position: " << quad_state_.x(QS::POSX) << ", " << quad_state_.x(QS::POSY) << ", " << quad_state_.x(QS::POSZ) << std::endl;
-  std::cout << "Goal Position: " << goal_state_(QS::POSX) << ", " << goal_state_(QS::POSY) << ", " << goal_state_(QS::POSZ) << std::endl;
-  // reset quadrotor with random states
-  quadrotor_ptr_->reset(quad_state_);
-
-  // reset control command
-  cmd_.t = 0.0;
-  cmd_.thrusts.setZero();
-
-  // obtain observations
-  getObs(obs);
-  return true;
+  else {
+    terminal_reached = false;
+    myTimer.tic();
+    return true;
+  }
 }
 
 
@@ -193,9 +226,17 @@ Scalar QuadrotorHoverEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
   return total_reward;
 }
 
+
 bool QuadrotorHoverEnv::isTerminalState(Scalar &reward) {
   if (quad_state_.x(QS::POSZ) <= 0.02) {
     reward = -0.02;
+    if (!toced) {
+      myTimer.toc();
+      time_elapsed = myTimer.last();
+      std::cout << "Elapsed time: (2)" << time_elapsed << std::endl;
+      toced = true;
+      terminal_reached = true;
+    }
     return true;
   }
   // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
