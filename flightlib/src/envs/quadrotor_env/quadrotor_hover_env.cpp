@@ -240,12 +240,17 @@ bool QuadrotorHoverEnv::isTerminalState(Scalar &reward) {
     return true;
   }
   // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
-  // if ((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
-  //      goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-  //       .squaredNorm() < 0.1) {
-  //   reward = 10.0;
-  //   return true;
-  // }
+  if (((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
+       goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
+        .squaredNorm() < 0.02) and (quad_obs_.segment<quadenv::kLinVel>(quadenv::kLinVel).squaredNorm() < 0.05)) {
+    reward = 10.0;
+    myTimer.toc();
+    time_elapsed = myTimer.last();
+    std::cout << "Elapsed time: (2)" << time_elapsed << std::endl;
+    toced = true;
+    terminal_reached = true;
+    return true;
+  }
   reward = 0.0;
   return false;
 }
