@@ -54,7 +54,7 @@ class PPO2(ActorCriticRLModel):
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
-                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
+                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None, pretrained_weight=None):
 
         self.learning_rate = learning_rate
         self.cliprange = cliprange
@@ -96,6 +96,20 @@ class PPO2(ActorCriticRLModel):
 
         if _init_setup_model:
             self.setup_model()
+            if pretrained_weight is not None:
+                    self.load_pretrained_weights(pretrained_weight)
+
+    def load_pretrained_weights(self, weights_path):
+        """
+        Load pretrained weights into the model.
+
+        :param weights_path: (str) Path to the file with pretrained weights.
+        """
+        with self.graph.as_default():
+            # Load the weights
+            saver = tf.train.Saver()
+            saver.restore(self.sess, weights_path)
+            print("Loaded pretrained weights from {}".format(weights_path))
 
     def _make_runner(self):
         return Runner(env=self.env, model=self, n_steps=self.n_steps,

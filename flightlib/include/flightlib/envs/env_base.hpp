@@ -25,6 +25,7 @@ class EnvBase {
 
   // (pure virtual) public methods (has to be implemented by child classes)
   virtual bool reset(Ref<Vector<>> obs, const bool random = true) = 0;
+  virtual bool resetRange(Ref<Vector<>> obs, int lower_zbound, int upper_zbound, int lower_xybound, int upper_xybound, const bool random) = 0;
   virtual Scalar step(const Ref<Vector<>> act, Ref<Vector<>> obs) = 0;
   virtual bool getObs(Ref<Vector<>> obs) = 0;
 

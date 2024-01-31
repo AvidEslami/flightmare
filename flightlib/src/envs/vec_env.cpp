@@ -77,6 +77,21 @@ bool VecEnv<EnvBase>::reset(Ref<MatrixRowMajor<>> obs) {
 }
 
 template<typename EnvBase>
+bool VecEnv<EnvBase>::resetRange(Ref<MatrixRowMajor<>> obs, int lower_zbound, int upper_zbound, int lower_xybound, int upper_xybound, const bool random){
+  if (obs.rows() != num_envs_ || obs.cols() != obs_dim_) {
+    logger_.error(
+      "Input matrix dimensions do not match with that of the environment.");
+    return false;
+  }
+
+  receive_id_ = 0;
+  for (int i = 0; i < num_envs_; i++) {
+    envs_[i]->resetRange(obs.row(i), lower_zbound, upper_zbound, lower_xybound, upper_xybound, random);
+  }
+  return true;
+}
+
+template<typename EnvBase>
 bool VecEnv<EnvBase>::step(Ref<MatrixRowMajor<>> act, Ref<MatrixRowMajor<>> obs,
                            Ref<Vector<>> reward, Ref<BoolVector<>> done,
                            Ref<MatrixRowMajor<>> extra_info) {
