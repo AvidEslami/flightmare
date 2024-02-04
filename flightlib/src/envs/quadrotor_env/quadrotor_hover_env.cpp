@@ -1,5 +1,14 @@
 #include "flightlib/envs/quadrotor_env/quadrotor_hover_env.hpp"
 
+// added includes for gate implementation
+#include "flightlib/eigen-3.4.0/Eigen/Eigen"
+
+#include "flightlib/bridges/unity_bridge.hpp"
+#include "flightlib/bridges/unity_message_types.hpp"
+#include "flightlib/common/types.hpp"
+#include "flightlib/objects/static_gate.hpp"
+
+
 namespace flightlib {
 
 int trial_num = 0;
@@ -11,6 +20,12 @@ flightlib::Scalar time_elapsed;
 bool terminal_reached = false;
 
 bool toced = false;
+
+std::string object_id = "unity_gate"; // Unique name
+std::string prefab_id = "rpg_gate"; // Name of the prefab in the Assets/Resources folder
+std::shared_ptr<StaticGate> gate =
+  std::make_shared<StaticGate>(object_id, prefab_id);
+
 
 QuadrotorHoverEnv::QuadrotorHoverEnv()
   : QuadrotorHoverEnv(getenv("FLIGHTMARE_PATH") +
@@ -64,6 +79,17 @@ QuadrotorHoverEnv::QuadrotorHoverEnv(const std::string &cfg_path)
 QuadrotorHoverEnv::~QuadrotorHoverEnv() {}
 
 bool QuadrotorHoverEnv::reset(Ref<Vector<>> obs, const bool random) {
+  // addition of gate to the environment
+  gate->setPosition(Eigen::Vector3f(0, 10, 2.5));
+  gate->setQuaternion(
+  Quaternion(std::cos(0.5 * M_PI*0.9), 0.0, 0.0, std::sin(0.5 * M_PI_2))); // rotation around z-axis
+
+  // An axis-angle rotation can therefore be represented by four numbers as in equation 3: (θ, x̂, ŷ, ẑ) 
+  // where θ is the angle of rotation, and (x̂, ŷ, ẑ) is the unit vector about which the rotation occurs.
+  // The quaternion representation of the same rotation is given by equation 4: q = (cos(θ/2), x̂sin(θ/2), ŷsin(θ/2), ẑsin(θ/2))
+
+  gate->setSize(Eigen::Vector3f(1.0, 1.0, 1.0));
+  // end of addition of gate to the environment
   if (terminal_reached == false) {
     // toc here if num trial > 0
     if (!toced) {
@@ -292,6 +318,7 @@ bool QuadrotorHoverEnv::getAct(Command *const cmd) const {
 
 void QuadrotorHoverEnv::addObjectsToUnity(std::shared_ptr<UnityBridge> bridge) {
   bridge->addQuadrotor(quadrotor_ptr_);
+  bridge->addStaticObject(gate);
 }
 
 std::ostream &operator<<(std::ostream &os, const QuadrotorHoverEnv &quad_env) {
