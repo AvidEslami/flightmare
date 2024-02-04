@@ -72,6 +72,11 @@ class FlightEnvVec(VecEnv):
         self.wrapper.reset(self._observation)
         return self._observation.copy()
 
+    def reset_range(self, lower_zbound, upper_zbound, lower_xybound, upper_xybound):
+        self._reward = np.zeros(self.num_envs, dtype=np.float32)
+        self.wrapper.reset_range(self._observation, lower_zbound, upper_zbound, lower_xybound, upper_xybound)
+        return self._observation.copy()
+
     def reset_and_update_info(self):
         return self.reset(), self._update_epi_info()
 

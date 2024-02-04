@@ -13,7 +13,7 @@ QuadrotorEnv::QuadrotorEnv(const std::string &cfg_path)
     lin_vel_coeff_(0.0),
     ang_vel_coeff_(0.0),
     act_coeff_(0.0),
-    goal_state_((Vector<quadenv::kNObs>() << 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0,
+    goal_state_((Vector<quadenv::kNObs>() << 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0,
                  0.0, 0.0, 0.0, 0.0, 0.0)
                   .finished()) {
   // load configuration file
@@ -76,8 +76,50 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
     quad_state_.x(QS::ATTZ) = uniform_dist_(random_gen_);
     quad_state_.qx /= quad_state_.qx.norm();
     
-    std::uniform_real_distribution<Scalar> altitude_dist(3.0, 9.0);
-    std::uniform_real_distribution<Scalar> xy_dist(-3.0, 3.0);
+    std::uniform_real_distribution<Scalar> altitude_dist(5.0, 7.0);
+    std::uniform_real_distribution<Scalar> xy_dist(-5.0, 5.0);
+
+    goal_state_(QS::POSX) = xy_dist(random_gen_);
+    goal_state_(QS::POSY) = xy_dist(random_gen_);
+    goal_state_(QS::POSZ) = altitude_dist(random_gen_);
+  }
+  // reset quadrotor with random states
+  quadrotor_ptr_->reset(quad_state_);
+
+  // reset control command
+  cmd_.t = 0.0;
+  cmd_.thrusts.setZero();
+
+  // obtain observations
+  getObs(obs);
+  return true;
+}
+
+bool QuadrotorEnv::resetRange(Ref<Vector<>> obs, int lower_zbound, int upper_zbound, int lower_xybound, int upper_xybound, const bool random) {
+  quad_state_.setZero();
+  quad_act_.setZero();
+
+  if (random) {
+    // randomly reset the quadrotor state
+    // reset position
+    quad_state_.x(QS::POSX) = uniform_dist_(random_gen_);
+    quad_state_.x(QS::POSY) = uniform_dist_(random_gen_);
+    quad_state_.x(QS::POSZ) = uniform_dist_(random_gen_) + 5;
+    if (quad_state_.x(QS::POSZ) < -0.0)
+      quad_state_.x(QS::POSZ) = -quad_state_.x(QS::POSZ);
+    // reset linear velocity
+    quad_state_.x(QS::VELX) = uniform_dist_(random_gen_);
+    quad_state_.x(QS::VELY) = uniform_dist_(random_gen_);
+    quad_state_.x(QS::VELZ) = uniform_dist_(random_gen_);
+    // reset orientation
+    quad_state_.x(QS::ATTW) = uniform_dist_(random_gen_);
+    quad_state_.x(QS::ATTX) = uniform_dist_(random_gen_);
+    quad_state_.x(QS::ATTY) = uniform_dist_(random_gen_);
+    quad_state_.x(QS::ATTZ) = uniform_dist_(random_gen_);
+    quad_state_.qx /= quad_state_.qx.norm();
+    
+    std::uniform_real_distribution<Scalar> altitude_dist(lower_zbound, upper_zbound);
+    std::uniform_real_distribution<Scalar> xy_dist(lower_xybound, upper_xybound);
 
     goal_state_(QS::POSX) = xy_dist(random_gen_);
     goal_state_(QS::POSY) = xy_dist(random_gen_);

@@ -97,6 +97,18 @@ class PPO2(ActorCriticRLModel):
         if _init_setup_model:
             self.setup_model()
 
+#    def load_pretrained_weights(self, weights_path):
+#        """
+#        Load pretrained weights into the model.
+#
+#        :param weights_path: (str) Path to the file with pretrained weights.
+#        """
+#        with self.graph.as_default():
+#            # Load the weights
+#            saver = tf.train.Saver()
+#            saver.restore(self.sess, weights_path)
+#            print("Loaded pretrained weights from {}".format(weights_path))
+
     def _make_runner(self):
         return Runner(env=self.env, model=self, n_steps=self.n_steps,
                       gamma=self.gamma, lam=self.lam)

@@ -158,6 +158,11 @@ bool QuadrotorHoverEnv::reset(Ref<Vector<>> obs, const bool random) {
 }
 
 
+bool QuadrotorHoverEnv::resetRange(Ref<Vector<>> obs, int lower_zbound, int upper_zbound, int lower_xybound, int upper_xybound, const bool random) {
+  return true;
+}
+
+
 bool QuadrotorHoverEnv::getObs(Ref<Vector<>> obs) {
   quadrotor_ptr_->getState(&quad_state_);
 
