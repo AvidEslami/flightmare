@@ -16,6 +16,7 @@
 #include "flightlib/envs/env_base.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_env.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_hover_env.hpp"
+#include "flightlib/envs/quadrotor_env/quadrotor_continuous_env.hpp"
 
 namespace flightlib {
 

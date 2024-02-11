@@ -8,6 +8,7 @@
 #include "flightlib/envs/env_base.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_env.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_hover_env.hpp"
+#include "flightlib/envs/quadrotor_env/quadrotor_continuous_env.hpp"
 #include "flightlib/envs/test_env.hpp"
 #include "flightlib/envs/vec_env.hpp"
 
@@ -63,5 +64,27 @@ PYBIND11_MODULE(flightgym, m) {
     // .def("getEpisodeLength", &VecEnv<QuadrotorHoverEnv>::getEpisodeLength)
     .def("__repr__", [](const VecEnv<QuadrotorHoverEnv>& a) {
       return "RPG Test Environment";
+    });
+
+  py::class_<VecEnv<QuadrotorContinuousEnv>>(m, "QuadrotorContinuousEnv_v1")
+    .def(py::init<>())
+    .def(py::init<const std::string&>())
+    .def(py::init<const std::string&, const bool>())
+    .def("reset", &VecEnv<QuadrotorContinuousEnv>::reset)
+    .def("step", &VecEnv<QuadrotorContinuousEnv>::step)
+    .def("testStep", &VecEnv<QuadrotorContinuousEnv>::testStep)
+    .def("setSeed", &VecEnv<QuadrotorContinuousEnv>::setSeed)
+    .def("close", &VecEnv<QuadrotorContinuousEnv>::close)
+    .def("isTerminalState", &VecEnv<QuadrotorContinuousEnv>::isTerminalState)
+    .def("curriculumUpdate", &VecEnv<QuadrotorContinuousEnv>::curriculumUpdate)
+    .def("connectUnity", &VecEnv<QuadrotorContinuousEnv>::connectUnity)
+    .def("disconnectUnity", &VecEnv<QuadrotorContinuousEnv>::disconnectUnity)
+    .def("getNumOfEnvs", &VecEnv<QuadrotorContinuousEnv>::getNumOfEnvs)
+    .def("getObsDim", &VecEnv<QuadrotorContinuousEnv>::getObsDim)
+    .def("getActDim", &VecEnv<QuadrotorContinuousEnv>::getActDim)
+    .def("getExtraInfoNames", &VecEnv<QuadrotorContinuousEnv>::getExtraInfoNames)
+    // .def("getEpisodeLength", &VecEnv<QuadrotorContinuousEnv>::getEpisodeLength)
+    .def("__repr__", [](const VecEnv<QuadrotorContinuousEnv>& a) {
+      return "RPG Continuous Test Environment";
     });
 }
