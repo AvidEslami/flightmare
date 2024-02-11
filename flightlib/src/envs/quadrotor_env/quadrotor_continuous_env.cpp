@@ -109,7 +109,7 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
       quad_state_.setZero();
       quad_state_.x(QS::POSZ) = 7.0;
 
-      goal_state_(QS::POSX) = 4;
+      goal_state_(QS::POSX) = 5;
       // if (waypoint_num_continuous == 0) {
       //   goal_state_(QS::POSX) = 0.0;
       // }
@@ -131,7 +131,7 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
     }
     
 
-    waypoint_num_continuous += 1;
+    waypoint_num_continuous = 1;
     std::cout << "waypoint_num_continuous: " << waypoint_num_continuous << std::endl;
     // Print Starting Position and Goal Position
     std::cout << "Starting Position: " << quad_state_.x(QS::POSX) << ", " << quad_state_.x(QS::POSY) << ", " << quad_state_.x(QS::POSZ) << std::endl;
@@ -180,6 +180,13 @@ bool QuadrotorContinuousEnv::getObs(Ref<Vector<>> obs) {
   // NEW APPROACH: Let us just focus on relative positions
   //               This lets us reduce model size and improve performance/generalization speed
   obs.segment<quadenv::kNObs>(quadenv::kObs) = goal_state_.segment<quadenv::kNObs>(quadenv::kObs) - quad_obs_.segment<quadenv::kNObs>(quadenv::kObs);
+
+  // Print relative position and velocity and other states
+  std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+  std::cout << "Relative Position: " << obs(0) << ", " << obs(1) << ", " << obs(2) << std::endl;
+  std::cout << "Relative Velocity: " << obs(3) << ", " << obs(4) << ", " << obs(5) << std::endl;
+  // std::cout << "Relative Angular Velocity: " << obs(6) << ", " << obs(7) << ", " << obs(8) << std::endl;
+  // std::cout << "Relative Orientation: " << obs(9) << ", " << obs(10) << ", " << obs(11) << std::endl;
 
   return true;
 }
@@ -234,21 +241,21 @@ Scalar QuadrotorContinuousEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
 
 
 bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
-  if (quad_state_.x(QS::POSZ) <= 0.02) {
-    reward = -0.02;
-    if (!toced_continuous) {
-      myTimer_continuous.toc();
-      time_elapsed_continuous = myTimer_continuous.last();
-      std::cout << "Elapsed time: (2)" << time_elapsed_continuous << std::endl;
-      toced_continuous = true;
-      terminal_reached_continuous = true;
-    }
-    return true;
-  }
+  // if (quad_state_.x(QS::POSZ) <= 0.02) {
+  //   reward = -0.02;
+  //   if (!toced_continuous) {
+  //     myTimer_continuous.toc();
+  //     time_elapsed_continuous = myTimer_continuous.last();
+  //     std::cout << "Elapsed time: (2)" << time_elapsed_continuous << std::endl;
+  //     toced_continuous = true;
+  //     terminal_reached_continuous = true;
+  //   }
+  //   return true;
+  // }
   // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
   if (((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
        goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.02) and (quad_obs_.segment<quadenv::kLinVel>(quadenv::kLinVel).squaredNorm() < 0.05)) {
+        .squaredNorm() < 0.3)) { // Temporarily increased to 0.1
     reward = 10.0;
     myTimer_continuous.toc();
     time_elapsed_continuous = myTimer_continuous.last();
@@ -259,7 +266,7 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
 
     if (waypoint_num_continuous == 1) {
       waypoint_num_continuous = 2;
-      goal_state_(QS::POSY) = 4;
+      goal_state_(QS::POSY) = 5;
     }
     else if (waypoint_num_continuous == 2) {
       waypoint_num_continuous = 3;
@@ -268,6 +275,10 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     else if (waypoint_num_continuous == 3) {
       waypoint_num_continuous = 4;
       goal_state_(QS::POSY) = 0;
+    }
+    else if (waypoint_num_continuous == 4) {
+      waypoint_num_continuous = 1;
+      goal_state_(QS::POSX) = 5;
     }
     else {
       toced_continuous = true;
