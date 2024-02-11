@@ -2,7 +2,7 @@
 
 namespace flightlib {
 
-int trial_num_continuous = 0;
+int waypoint_num_continuous = 0;
 
 flightlib::Timer myTimer_continuous("myTimer_continuous", "starter_module");
 
@@ -14,7 +14,7 @@ bool toced_continuous = false;
 
 QuadrotorContinuousEnv::QuadrotorContinuousEnv()
   : QuadrotorContinuousEnv(getenv("FLIGHTMARE_PATH") +
-                 std::string("/flightlib/configs/quadrotor_env.yaml")) {}
+                 std::string("/flightlib/configs/quadrotor_continuous_test_env.yaml")) {}
 
 QuadrotorContinuousEnv::QuadrotorContinuousEnv(const std::string &cfg_path)
   : EnvBase(),
@@ -67,7 +67,7 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
   if (terminal_reached_continuous == false) {
     // toc here if num trial > 0
     if (!toced_continuous) {
-      if (trial_num_continuous > 0) {
+      if (waypoint_num_continuous > 0) {
         myTimer_continuous.toc();
         time_elapsed_continuous = myTimer_continuous.last();
         std::cout << "Elapsed time: (1)" << time_elapsed_continuous << std::endl;
@@ -90,13 +90,13 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
     // quad_state_.x(QS::ATTZ) = 0.0;
     // // quad_state_.qx /= quad_state_.qx.norm();
 
-    // if (trial_num_continuous == 0) {
+    // if (waypoint_num_continuous == 0) {
     //   goal_state_(QS::POSX) = 3.0;
     // }
-    // else if (trial_num_continuous == 1) {
+    // else if (waypoint_num_continuous == 1) {
     //   goal_state_(QS::POSX) = 3.0;
     // }
-    // else if (trial_num_continuous == 2) {
+    // else if (waypoint_num_continuous == 2) {
     //   goal_state_(QS::POSX) = 3.0;
     // }
     // else {
@@ -107,31 +107,32 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
     if (random) {
 
       quad_state_.setZero();
-      quad_state_.x(QS::POSZ) = 5.0;
+      quad_state_.x(QS::POSZ) = 7.0;
 
-      if (trial_num_continuous == 0) {
-        goal_state_(QS::POSX) = 0.0;
-      }
-      else if (trial_num_continuous == 1) {
-        goal_state_(QS::POSX) = 3.0;
-      }
-      else if (trial_num_continuous == 2) {
-        goal_state_(QS::POSX) = 6.0;
-      }
-      else if (trial_num_continuous == 3) {
-        goal_state_(QS::POSX) = 15.0;
-      }
-      else {
-        goal_state_(QS::POSX) = 0.0;
-      }
+      goal_state_(QS::POSX) = 4;
+      // if (waypoint_num_continuous == 0) {
+      //   goal_state_(QS::POSX) = 0.0;
+      // }
+      // else if (waypoint_num_continuous == 1) {
+      //   goal_state_(QS::POSX) = 3.0;
+      // }
+      // else if (waypoint_num_continuous == 2) {
+      //   goal_state_(QS::POSX) = 6.0;
+      // }
+      // else if (waypoint_num_continuous == 3) {
+      //   goal_state_(QS::POSX) = 15.0;
+      // }
+      // else {
+      //   goal_state_(QS::POSX) = 0.0;
+      // }
 
       goal_state_(QS::POSY) = 0.0;
-      goal_state_(QS::POSZ) = 5.0;
+      goal_state_(QS::POSZ) = 7.0;
     }
     
 
-    trial_num_continuous += 1;
-    std::cout << "trial_num_continuous: " << trial_num_continuous << std::endl;
+    waypoint_num_continuous += 1;
+    std::cout << "waypoint_num_continuous: " << waypoint_num_continuous << std::endl;
     // Print Starting Position and Goal Position
     std::cout << "Starting Position: " << quad_state_.x(QS::POSX) << ", " << quad_state_.x(QS::POSY) << ", " << quad_state_.x(QS::POSZ) << std::endl;
     std::cout << "Goal Position: " << goal_state_(QS::POSX) << ", " << goal_state_(QS::POSY) << ", " << goal_state_(QS::POSZ) << std::endl;
@@ -252,9 +253,27 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     myTimer_continuous.toc();
     time_elapsed_continuous = myTimer_continuous.last();
     std::cout << "Elapsed time: (2)" << time_elapsed_continuous << std::endl;
-    toced_continuous = true;
-    terminal_reached_continuous = true;
-    return true;
+    // toced_continuous = true;
+    // terminal_reached_continuous = true;
+    // return true;
+
+    if (waypoint_num_continuous == 1) {
+      waypoint_num_continuous = 2;
+      goal_state_(QS::POSY) = 4;
+    }
+    else if (waypoint_num_continuous == 2) {
+      waypoint_num_continuous = 3;
+      goal_state_(QS::POSX) = 0;
+    }
+    else if (waypoint_num_continuous == 3) {
+      waypoint_num_continuous = 4;
+      goal_state_(QS::POSY) = 0;
+    }
+    else {
+      toced_continuous = true;
+      terminal_reached_continuous = true;
+      return true;
+    }
   }
   reward = 0.0;
   return false;

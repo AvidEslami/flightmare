@@ -46,6 +46,7 @@ def main():
 
     cfg["env"]["num_envs"] = 1
     cfg["env"]["num_threads"] = 1
+    cfg["env"]["max_episode_steps"] = 2000
 
     if args.render:
         cfg["env"]["render"] = "yes"
@@ -55,6 +56,7 @@ def main():
     env = wrapper.FlightEnvVec(QuadrotorContinuousEnv_v1(
         dump(cfg, Dumper=RoundTripDumper), False))
     
+    env.max_episode_steps = 2000
     # env = DynamicGate_v0(dump(cfg["env"], Dumper=RoundTripDumper))
     # env = EnvWrapper(env)
 
