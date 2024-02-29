@@ -66,24 +66,22 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
     std::uniform_real_distribution<Scalar> orientation_y_init(-0.306, 0.306);
     std::uniform_real_distribution<Scalar> orientation_z_init(-0.306, 0.177);
 
-    quad_state_.x(QS::POSX) = uniform_dist_(random_gen_);
-    quad_state_.x(QS::POSY) = uniform_dist_(random_gen_);
-    quad_state_.x(QS::POSZ) = uniform_dist_(random_gen_) + 5;
-    if (quad_state_.x(QS::POSZ) < -0.0)
-      quad_state_.x(QS::POSZ) = -quad_state_.x(QS::POSZ);
+    quad_state_.setZero();
+    quad_state_.x(QS::POSZ) = uniform_dist_(random_gen_) + 10;
+
     // reset linear velocity
-    quad_state_.x(QS::VELX) = velocity_init(random_gen_);
-    quad_state_.x(QS::VELY) = velocity_init(random_gen_);
-    quad_state_.x(QS::VELZ) = velocity_init(random_gen_);
+    // quad_state_.x(QS::VELX) = velocity_init(random_gen_);
+    // quad_state_.x(QS::VELY) = velocity_init(random_gen_);
+    // quad_state_.x(QS::VELZ) = velocity_init(random_gen_);
     // reset orientation
-    quad_state_.x(QS::ATTW) = orientation_w_init(random_gen_);
-    quad_state_.x(QS::ATTX) = orientation_x_init(random_gen_);
-    quad_state_.x(QS::ATTY) = orientation_y_init(random_gen_);
-    quad_state_.x(QS::ATTZ) = orientation_z_init(random_gen_);
-    quad_state_.qx /= quad_state_.qx.norm();
+    // quad_state_.x(QS::ATTW) = orientation_w_init(random_gen_);
+    // quad_state_.x(QS::ATTX) = orientation_x_init(random_gen_);
+    // quad_state_.x(QS::ATTY) = orientation_y_init(random_gen_);
+    // quad_state_.x(QS::ATTZ) = orientation_z_init(random_gen_);
+    // quad_state_.qx /= quad_state_.qx.norm();
     
-    std::uniform_real_distribution<Scalar> altitude_dist(0, 5);
-    std::uniform_real_distribution<Scalar> xy_dist(-2.5, 2.5);
+    std::uniform_real_distribution<Scalar> altitude_dist(5, 15);
+    std::uniform_real_distribution<Scalar> xy_dist(-5, 5);
     std::uniform_real_distribution<Scalar> velocity(-20, 20);
     std::uniform_real_distribution<Scalar> orientation_w(0.884, 0.919);
     std::uniform_real_distribution<Scalar> orientation_x(-0.177, 0.177);
@@ -93,13 +91,23 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
     goal_state_(QS::POSX) = xy_dist(random_gen_);
     goal_state_(QS::POSY) = xy_dist(random_gen_);
     goal_state_(QS::POSZ) = altitude_dist(random_gen_);
-    goal_state_(QS::VELX) = velocity(random_gen_);
-    goal_state_(QS::VELY) = velocity(random_gen_);
-    goal_state_(QS::VELZ) = velocity(random_gen_);
-    goal_state_(QS::ATTW) = orientation_w(random_gen_);
-    goal_state_(QS::ATTX) = orientation_x(random_gen_);
-    goal_state_(QS::ATTY) = orientation_y(random_gen_);
-    goal_state_(QS::ATTZ) = orientation_z(random_gen_);
+
+    float magnitude_of_distance = (quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).norm();
+
+    while (magnitude_of_distance > 5.0) {
+      goal_state_(QS::POSX) = xy_dist(random_gen_);
+      goal_state_(QS::POSY) = xy_dist(random_gen_);
+      goal_state_(QS::POSZ) = altitude_dist(random_gen_);
+      magnitude_of_distance = (quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).norm();
+    }
+
+    // goal_state_(QS::VELX) = velocity(random_gen_);
+    // goal_state_(QS::VELY) = velocity(random_gen_);
+    // goal_state_(QS::VELZ) = velocity(random_gen_);
+    // goal_state_(QS::ATTW) = orientation_w(random_gen_);
+    // goal_state_(QS::ATTX) = orientation_x(random_gen_);
+    // goal_state_(QS::ATTY) = orientation_y(random_gen_);
+    // goal_state_(QS::ATTZ) = orientation_z(random_gen_);
   }
   // reset quadrotor with random states
   quadrotor_ptr_->reset(quad_state_);
@@ -206,7 +214,6 @@ Scalar QuadrotorEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
     pos_coeff_ * (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
                   goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
                    .squaredNorm()*2;
-
   // - orientation tracking
   Scalar ori_reward =
     ori_coeff_ * (quad_obs_.segment<quadenv::kNOri>(quadenv::kOri) -
@@ -230,21 +237,26 @@ Scalar QuadrotorEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
     pos_reward + ori_reward + lin_vel_reward + ang_vel_reward + act_reward;
 
   // survival reward
-  total_reward += 0.1;
+  total_reward += 0.2;
 
   return total_reward;
 }
 
 bool QuadrotorEnv::isTerminalState(Scalar &reward) {
-  if (quad_state_.x(QS::POSZ) <= 0.02) {
-    reward = -0.02;
+  if (((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
+       goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
+        .squaredNorm() < 0.02)) {
+    // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
+    // double dist = (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).squaredNorm();
+    // double power = -0.5*std::pow(dist/0.5, 2);
+    // reward = 10.0*std::exp(power);
+    reward = 150.0;
     return true;
   }
-  // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
-  double dist = (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).squaredNorm();
-  double power = -0.5*std::pow(dist/0.5, 2);
-  reward = 10.0*std::exp(power);
-  return false;
+  else {
+    reward = 0.0;
+    return false;
+  }
 }
 
 bool QuadrotorEnv::loadParam(const YAML::Node &cfg) {
