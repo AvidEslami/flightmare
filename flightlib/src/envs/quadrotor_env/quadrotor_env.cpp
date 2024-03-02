@@ -110,7 +110,8 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
 
     float magnitude_of_distance = (quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).norm();
 
-    while (magnitude_of_distance > 5.0) {
+    // Ensure goal state is less than 5m away from the drone, and is in the direction of the drone's velocity
+    while ((magnitude_of_distance > 5.0) and (quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).dot(quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos)) < 0){
       goal_state_(QS::POSX) = xy_dist(random_gen_);
       goal_state_(QS::POSY) = xy_dist(random_gen_);
       goal_state_(QS::POSZ) = altitude_dist(random_gen_);
@@ -259,7 +260,9 @@ Scalar QuadrotorEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
 }
 
 bool QuadrotorEnv::isTerminalState(Scalar &reward) {
-  if (((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos).squaredNorm() < 0.1))) {
+  if ((((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
+       goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
+        .squaredNorm() < 0.1))) {
     // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
     // double dist = (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).squaredNorm();
     // double power = -0.5*std::pow(dist/0.5, 2);
