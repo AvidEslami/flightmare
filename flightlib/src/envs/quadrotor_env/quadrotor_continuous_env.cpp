@@ -10,6 +10,9 @@ flightlib::Scalar time_elapsed_continuous;
 
 bool terminal_reached_continuous = false;
 
+int flightpath = 1;
+// 0: Square Path
+// 1: 9 Meter
 bool toced_continuous = false;
 
 QuadrotorContinuousEnv::QuadrotorContinuousEnv()
@@ -39,7 +42,7 @@ QuadrotorContinuousEnv::QuadrotorContinuousEnv(const std::string &cfg_path)
   quadrotor_ptr_->updateDynamics(dynamics);
 
   // define a bounding box
-  world_box_ << -20, 20, -20, 20, 0, 20;
+  world_box_ << -30, 30, -30, 30, -10, 30;
   if (!quadrotor_ptr_->setWorldBox(world_box_)) {
     logger_.error("cannot set wolrd box");
   };
@@ -108,8 +111,13 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
 
       quad_state_.setZero();
       quad_state_.x(QS::POSZ) = 7.0;
-
-      goal_state_(QS::POSX) = 5;
+      if (flightpath == 0) {
+        goal_state_(QS::POSX) = 5;
+      }
+      else if (flightpath == 1) {
+        goal_state_(QS::POSX) = 2.9241;
+        goal_state_(QS::POSZ) = 7-0.05604;
+      }
       // if (waypoint_num_continuous == 0) {
       //   goal_state_(QS::POSX) = 0.0;
       // }
@@ -180,11 +188,12 @@ bool QuadrotorContinuousEnv::getObs(Ref<Vector<>> obs) {
   // NEW APPROACH: Let us just focus on relative positions
   //               This lets us reduce model size and improve performance/generalization speed
   obs.segment<quadenv::kNObs>(quadenv::kObs) = goal_state_.segment<quadenv::kNObs>(quadenv::kObs) - quad_obs_.segment<quadenv::kNObs>(quadenv::kObs);
-
+  // Print current goal state
+  std::cout << "Current Goal State: " << goal_state_(QS::POSX) << ", " << goal_state_(QS::POSY) << ", " << goal_state_(QS::POSZ) << std::endl;
   // Print relative position and velocity and other states
-  std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
-  std::cout << "Relative Position: " << obs(0) << ", " << obs(1) << ", " << obs(2) << std::endl;
-  std::cout << "Relative Velocity: " << obs(3) << ", " << obs(4) << ", " << obs(5) << std::endl;
+  // std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+  // std::cout << "Relative Position: " << obs(0) << ", " << obs(1) << ", " << obs(2) << std::endl;
+  // std::cout << "Relative Velocity: " << obs(3) << ", " << obs(4) << ", " << obs(5) << std::endl;
   // std::cout << "Relative Angular Velocity: " << obs(6) << ", " << obs(7) << ", " << obs(8) << std::endl;
   // std::cout << "Relative Orientation: " << obs(9) << ", " << obs(10) << ", " << obs(11) << std::endl;
 
@@ -263,27 +272,45 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     // toced_continuous = true;
     // terminal_reached_continuous = true;
     // return true;
-
-    if (waypoint_num_continuous == 1) {
-      waypoint_num_continuous = 2;
-      goal_state_(QS::POSY) = 5;
+    if (flightpath == 0) {
+      if (waypoint_num_continuous == 1) {
+        waypoint_num_continuous = 2;
+        goal_state_(QS::POSY) = 5;
+      }
+      else if (waypoint_num_continuous == 2) {
+        waypoint_num_continuous = 3;
+        goal_state_(QS::POSX) = 0;
+      }
+      else if (waypoint_num_continuous == 3) {
+        waypoint_num_continuous = 4;
+        goal_state_(QS::POSY) = 0;
+      }
+      else if (waypoint_num_continuous == 4) {
+        waypoint_num_continuous = 1;
+        goal_state_(QS::POSX) = 5;
+      }
+      else {
+        toced_continuous = true;
+        terminal_reached_continuous = true;
+        return true;
+      }
     }
-    else if (waypoint_num_continuous == 2) {
-      waypoint_num_continuous = 3;
-      goal_state_(QS::POSX) = 0;
-    }
-    else if (waypoint_num_continuous == 3) {
-      waypoint_num_continuous = 4;
-      goal_state_(QS::POSY) = 0;
-    }
-    else if (waypoint_num_continuous == 4) {
-      waypoint_num_continuous = 1;
-      goal_state_(QS::POSX) = 5;
-    }
-    else {
-      toced_continuous = true;
-      terminal_reached_continuous = true;
-      return true;
+    else if (flightpath == 1) {
+      if (waypoint_num_continuous == 1) {
+        waypoint_num_continuous = 2;
+        goal_state_(QS::POSX) = 6.2708;
+        goal_state_(QS::POSZ) = 7+-0.042849;
+      }
+      else if (waypoint_num_continuous == 2) {
+        waypoint_num_continuous = 3;
+        goal_state_(QS::POSX) = 9;
+        goal_state_(QS::POSZ) = 7;
+      }
+      else if (waypoint_num_continuous == 3) {
+        waypoint_num_continuous = 1;
+        goal_state_(QS::POSX) = 0;
+        goal_state_(QS::POSZ) = 7;
+      }
     }
   }
   reward = 0.0;

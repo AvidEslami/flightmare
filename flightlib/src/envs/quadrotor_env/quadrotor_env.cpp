@@ -29,7 +29,7 @@ QuadrotorEnv::QuadrotorEnv(const std::string &cfg_path)
   quadrotor_ptr_->updateDynamics(dynamics);
 
   // define a bounding box
-  world_box_ << -20, 20, -20, 20, 0, 20;
+  world_box_ << -30, 30, -30, 30, -30, 30;
   if (!quadrotor_ptr_->setWorldBox(world_box_)) {
     logger_.error("cannot set wolrd box");
   };
@@ -60,14 +60,30 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
   if (random) {
     // randomly reset the quadrotor state
     // reset position
-    std::uniform_real_distribution<Scalar> velocity_init(-20, 20);
-    std::uniform_real_distribution<Scalar> orientation_w_init(0.884, 0.919);
-    std::uniform_real_distribution<Scalar> orientation_x_init(-0.177, 0.177);
-    std::uniform_real_distribution<Scalar> orientation_y_init(-0.306, 0.306);
-    std::uniform_real_distribution<Scalar> orientation_z_init(-0.306, 0.177);
+    std::uniform_real_distribution<Scalar> velocity_init(-5, 5);
+    // std::uniform_real_distribution<Scalar> orientation_w_init(0.884, 0.919);
+    // std::uniform_real_distribution<Scalar> orientation_x_init(-0.177, 0.177);
+    // std::uniform_real_distribution<Scalar> orientation_y_init(-0.306, 0.306);
+    // std::uniform_real_distribution<Scalar> orientation_z_init(-0.306, 0.177);
 
     quad_state_.setZero();
     quad_state_.x(QS::POSZ) = uniform_dist_(random_gen_) + 10;
+    // Give drone a random starting velocity between -1 and 1 m/s in x, y, and z
+    quad_state_.x(QS::VELX) = velocity_init(random_gen_);
+    quad_state_.x(QS::VELY) = velocity_init(random_gen_);
+    quad_state_.x(QS::VELZ) = velocity_init(random_gen_);
+
+    // Orient the drone in the direction of its velocity
+    float x_velocity = quad_state_.x(QS::VELX);
+    float y_velocity = quad_state_.x(QS::VELY);
+    float z_velocity = quad_state_.x(QS::VELZ);
+    float yaw = std::atan2(y_velocity, x_velocity);
+    float pitch = std::atan2(-z_velocity, std::sqrt(x_velocity*x_velocity + y_velocity*y_velocity));
+    quad_state_.x(QS::ATTW) = std::cos(yaw/2)*std::cos(pitch/2);
+    quad_state_.x(QS::ATTX) = std::sin(yaw/2)*std::cos(pitch/2);
+    quad_state_.x(QS::ATTY) = -std::sin(pitch/2)*std::cos(yaw/2);
+    quad_state_.x(QS::ATTZ) = std::sin(pitch/2)*std::sin(yaw/2);
+    quad_state_.qx /= quad_state_.qx.norm();
 
     // reset linear velocity
     // quad_state_.x(QS::VELX) = velocity_init(random_gen_);
@@ -80,7 +96,7 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
     // quad_state_.x(QS::ATTZ) = orientation_z_init(random_gen_);
     // quad_state_.qx /= quad_state_.qx.norm();
     
-    std::uniform_real_distribution<Scalar> altitude_dist(5, 15);
+    std::uniform_real_distribution<Scalar> altitude_dist(7, 13);
     std::uniform_real_distribution<Scalar> xy_dist(-5, 5);
     std::uniform_real_distribution<Scalar> velocity(-20, 20);
     std::uniform_real_distribution<Scalar> orientation_w(0.884, 0.919);
@@ -213,7 +229,7 @@ Scalar QuadrotorEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
   Scalar pos_reward =
     pos_coeff_ * (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
                   goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-                   .squaredNorm()*2;
+                   .squaredNorm();
   // - orientation tracking
   Scalar ori_reward =
     ori_coeff_ * (quad_obs_.segment<quadenv::kNOri>(quadenv::kOri) -
@@ -237,20 +253,22 @@ Scalar QuadrotorEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
     pos_reward + ori_reward + lin_vel_reward + ang_vel_reward + act_reward;
 
   // survival reward
-  total_reward += 0.2;
+  total_reward += 0.15;
 
   return total_reward;
 }
 
 bool QuadrotorEnv::isTerminalState(Scalar &reward) {
-  if (((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
-       goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.02)) {
+  if (((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos).squaredNorm() < 0.1))) {
     // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
     // double dist = (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).squaredNorm();
     // double power = -0.5*std::pow(dist/0.5, 2);
     // reward = 10.0*std::exp(power);
-    reward = 150.0;
+    reward = 30.0;
+    return true;
+  }
+  else if ((quad_state_.x(QS::POSZ) <= 0.02)) {
+    reward = -50.5;
     return true;
   }
   else {
