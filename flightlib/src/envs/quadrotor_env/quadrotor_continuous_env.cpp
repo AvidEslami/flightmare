@@ -10,9 +10,11 @@ flightlib::Scalar time_elapsed_continuous;
 
 bool terminal_reached_continuous = false;
 
-int flightpath = 1;
+int flightpath = 2;
 // 0: Square Path
 // 1: 9 Meter
+// 2: 15 Meter
+
 bool toced_continuous = false;
 
 QuadrotorContinuousEnv::QuadrotorContinuousEnv()
@@ -117,6 +119,10 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
       else if (flightpath == 1) {
         goal_state_(QS::POSX) = 2.9241;
         goal_state_(QS::POSZ) = 7-0.05604;
+      }
+      else if (flightpath == 2) {
+        goal_state_(QS::POSX) = 4.0132;
+        goal_state_(QS::POSZ) = 7-0.78509;
       }
       // if (waypoint_num_continuous == 0) {
       //   goal_state_(QS::POSX) = 0.0;
@@ -307,6 +313,33 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
         goal_state_(QS::POSZ) = 7;
       }
       else if (waypoint_num_continuous == 3) {
+        waypoint_num_continuous = 1;
+        goal_state_(QS::POSX) = 0;
+        goal_state_(QS::POSZ) = 7;
+      }
+    }
+    else if (flightpath == 2) {
+      if (waypoint_num_continuous == 1) {
+        waypoint_num_continuous = 2;
+        goal_state_(QS::POSX) = 8.0129;
+        goal_state_(QS::POSZ) = 7-1.3501;
+      }
+      else if (waypoint_num_continuous == 2) {
+        waypoint_num_continuous = 3;
+        goal_state_(QS::POSX) = 12.065;
+        goal_state_(QS::POSZ) = 7-1.346;
+      }
+      else if (waypoint_num_continuous == 3) {
+        waypoint_num_continuous = 4;
+        goal_state_(QS::POSX) = 16.043;
+        goal_state_(QS::POSZ) = 7-0.78063;
+      }
+      else if (waypoint_num_continuous == 4) {
+        waypoint_num_continuous = 5;
+        goal_state_(QS::POSX) = 20;
+        goal_state_(QS::POSZ) = 7;
+      }
+      else if (waypoint_num_continuous == 5) {
         waypoint_num_continuous = 1;
         goal_state_(QS::POSX) = 0;
         goal_state_(QS::POSZ) = 7;
