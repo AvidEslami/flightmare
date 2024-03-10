@@ -35,10 +35,10 @@ QuadrotorEnv::QuadrotorEnv(const std::string &cfg_path)
   };
 
   // define input and output dimension for the environment
-  // obs_dim_ = quadenv::kNObs * 2;
+  obs_dim_ = quadenv::kNObs * 2;
 
-  // NEW APPROACH: Let us just focus on relative positions
-  obs_dim_ = quadenv::kNObs;
+  // // NEW APPROACH: Let us just focus on relative positions
+  // obs_dim_ = quadenv::kNObs;
 
 
   act_dim_ = quadenv::kNAct;
@@ -98,7 +98,6 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
     
     std::uniform_real_distribution<Scalar> altitude_dist(7, 13);
     std::uniform_real_distribution<Scalar> xy_dist(-5, 5);
-    std::uniform_real_distribution<Scalar> velocity(-20, 20);
     std::uniform_real_distribution<Scalar> orientation_w(0.884, 0.919);
     std::uniform_real_distribution<Scalar> orientation_x(-0.177, 0.177);
     std::uniform_real_distribution<Scalar> orientation_y(-0.306, 0.306);
@@ -107,6 +106,43 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
     goal_state_(QS::POSX) = xy_dist(random_gen_);
     goal_state_(QS::POSY) = xy_dist(random_gen_);
     goal_state_(QS::POSZ) = altitude_dist(random_gen_);
+
+    // Assign the velocity we would like the drone to reach at the goal state
+    // goal_state_(QS::VELX) = velocity_init(random_gen_);
+    // goal_state_(QS::VELY) = velocity_init(random_gen_);
+    // goal_state_(QS::VELZ) = velocity_init(random_gen_);
+
+    // // Ensure the desired goal state direction is roughly in the direction of the drone's velocity (vary by less than 90 degrees)
+    // int direction_changes = 0;
+    // if (goal_state_(QS::VELX)*quad_state_.x(QS::VELX) < 0){
+    //   direction_changes++;
+    // }
+    // if (goal_state_(QS::VELY)*quad_state_.x(QS::VELY) < 0){
+    //   direction_changes++;
+    // }
+    // if (goal_state_(QS::VELZ)*quad_state_.x(QS::VELZ) < 0){
+    //   direction_changes++;
+    // }
+
+    // while (direction_changes > 1){
+    //   goal_state_(QS::POSX) = xy_dist(random_gen_);
+    //   goal_state_(QS::POSY) = xy_dist(random_gen_);
+    //   goal_state_(QS::POSZ) = altitude_dist(random_gen_);
+    //   goal_state_(QS::VELX) = velocity_init(random_gen_);
+    //   goal_state_(QS::VELY) = velocity_init(random_gen_);
+    //   goal_state_(QS::VELZ) = velocity_init(random_gen_);
+    //   direction_changes = 0;
+    //   if (goal_state_(QS::VELX)*quad_state_.x(QS::VELX) < 0){
+    //     direction_changes++;
+    //   }
+    //   if (goal_state_(QS::VELY)*quad_state_.x(QS::VELY) < 0){
+    //     direction_changes++;
+    //   }
+    //   if (goal_state_(QS::VELZ)*quad_state_.x(QS::VELZ) < 0){
+    //     direction_changes++;
+    //   }
+    // }
+
 
     float magnitude_of_distance = (quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).norm();
 
@@ -200,14 +236,14 @@ bool QuadrotorEnv::getObs(Ref<Vector<>> obs) {
   // quaternionToEuler(quad_state_.q(), euler);
   quad_obs_ << quad_state_.p, euler_zyx, quad_state_.v, quad_state_.w;
 
-  // obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
-  //   obs.segment<quadenv::kNObs>(quadenv::kObs + quadenv::kNObs) = goal_state_;
+  obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
+  obs.segment<quadenv::kNObs>(quadenv::kObs + quadenv::kNObs) = goal_state_;
   // obs(quadenv::kNObs) = goal_state_(QS::POSZ); // add goal state to observation vector
 
 
   // NEW APPROACH: Let us just focus on relative positions
   //               This lets us reduce model size and improve performance/generalization speed
-  obs.segment<quadenv::kNObs>(quadenv::kObs) = goal_state_.segment<quadenv::kNObs>(quadenv::kObs) - quad_obs_.segment<quadenv::kNObs>(quadenv::kObs);
+  // obs.segment<quadenv::kNObs>(quadenv::kObs) = goal_state_.segment<quadenv::kNObs>(quadenv::kObs) - quad_obs_.segment<quadenv::kNObs>(quadenv::kObs);
 
   return true;
 }
@@ -241,6 +277,7 @@ Scalar QuadrotorEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
     lin_vel_coeff_ * (quad_obs_.segment<quadenv::kNLinVel>(quadenv::kLinVel) -
                       goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel))
                        .squaredNorm();
+
   // - angular velocity tracking
   Scalar ang_vel_reward =
     ang_vel_coeff_ * (quad_obs_.segment<quadenv::kNAngVel>(quadenv::kAngVel) -
@@ -251,7 +288,7 @@ Scalar QuadrotorEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
   Scalar act_reward = act_coeff_ * act.cast<Scalar>().norm();
 
   Scalar total_reward =
-    pos_reward + ori_reward + lin_vel_reward + ang_vel_reward + act_reward;
+    pos_reward + act_reward + ori_reward + ang_vel_reward + lin_vel_reward;
 
   // survival reward
   total_reward += 0.15;
@@ -268,6 +305,13 @@ bool QuadrotorEnv::isTerminalState(Scalar &reward) {
     // double power = -0.5*std::pow(dist/0.5, 2);
     // reward = 10.0*std::exp(power);
     reward = 30.0;
+
+    // // Use a bell curve to reward the drone for having a velocity that is very close to the desired velocity
+    // // MAXIMUM REWARD FROM VELOCITY: 40.0, MINIMUM REWARD FROM VELOCITY: 0.0
+    // double vel_dist = (quad_obs_.segment<quadenv::kNLinVel>(quadenv::kLinVel) - goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel)).squaredNorm();
+    // double vel_power = -0.5*std::pow(vel_dist/0.5, 2);
+    // reward += 40.0*std::exp(vel_power);
+    // printf("TERMINAL REWARD: ", reward);
     return true;
   }
   else if ((quad_state_.x(QS::POSZ) <= 0.02)) {
