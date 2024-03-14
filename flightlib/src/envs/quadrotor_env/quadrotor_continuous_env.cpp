@@ -10,10 +10,12 @@ flightlib::Scalar time_elapsed_continuous;
 
 bool terminal_reached_continuous = false;
 
-int flightpath = 2;
+int flightpath = 3;
 // 0: Square Path
 // 1: 9 Meter
 // 2: 15 Meter
+
+int line_counter = 10;
 
 bool toced_continuous = false;
 
@@ -254,6 +256,107 @@ Scalar QuadrotorContinuousEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
   return total_reward;
 }
 
+void loadCSV(std::vector<std::string>& flight_data, std::string csv_path){
+  std::fstream fs_csv;
+  fs_csv.open(csv_path, std::ios::in);
+  if(fs_csv.fail()){
+    std::cout<<"Fail to open csv"<<std::endl;
+  }
+  std::string buffer;
+  while(std::getline(fs_csv, buffer)){
+    flight_data.push_back(buffer);
+  }
+}
+
+std::vector<double> setFlightPath(int flight_path, int& waypoint_num_continuous, int& line_count, std::vector<std::string> csvFile){
+  std::vector<double> flight_coords;
+  switch(flight_path){
+    case 0:
+      switch(waypoint_num_continuous){
+        case 1: 
+          flight_coords = {std::numeric_limits<double>::max(), 5, std::numeric_limits<double>::max()};
+          waypoint_num_continuous++;
+          break;
+        case 2:
+          flight_coords = {0, std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
+          waypoint_num_continuous++;
+          break;
+        case 3:
+          flight_coords = {std::numeric_limits<double>::max(), 0, std::numeric_limits<double>::max()};
+          waypoint_num_continuous++;
+          break;
+        case 4:
+          flight_coords = {5, std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
+          waypoint_num_continuous = 1;
+          break;
+      }
+      break;
+    case 1:
+      switch(waypoint_num_continuous){
+        case 1:
+          flight_coords = {6.2708, std::numeric_limits<double>::max(), 7+-0.042849};
+          waypoint_num_continuous++;
+          break;
+        case 2:
+          flight_coords = {9, std::numeric_limits<double>::max(), 7};
+          waypoint_num_continuous++;
+          break;
+        case 3:
+          flight_coords = {0, std::numeric_limits<double>::max(), 7};
+          waypoint_num_continuous = 1;
+          break;
+      }
+      break;
+    case 2:
+      switch(waypoint_num_continuous){
+        case 1:
+          flight_coords = {8.0129, std::numeric_limits<double>::max(), 7-1.3501};
+          waypoint_num_continuous++;
+          break;
+        case 2:
+          flight_coords = {12.065, std::numeric_limits<double>::max(), 7-1.346};
+          waypoint_num_continuous++;
+          break;
+        case 3:
+          flight_coords = {16.043, std::numeric_limits<double>::max(), 7-0.78063};
+          waypoint_num_continuous++;
+          break;
+        case 4:
+          flight_coords = {20, std::numeric_limits<double>::max(), 7};
+          waypoint_num_continuous++;
+          break;
+        case 5:
+          flight_coords = {0, std::numeric_limits<double>::max(), 7};
+          waypoint_num_continuous = 1;
+          break;
+      }
+      break;
+    case 3:
+      if(line_count >= csvFile.size()){
+        line_count = 10;
+      }
+      std::string line = csvFile[line_count];
+      std::stringstream line_stream(line);
+      for(int i = 0; i < 4; i++){
+        std::string data;
+        std::getline(line_stream, data, ',');
+        if(i == 0){
+          continue;
+        }
+        else{
+          flight_coords.push_back(stod(data));
+        }
+      }
+      line_count += 10;
+      waypoint_num_continuous++;
+      if(line_count > csvFile.size()){
+        waypoint_num_continuous = 1;
+      }
+      break;
+  }
+  return flight_coords;
+}
+
 
 bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
   // if (quad_state_.x(QS::POSZ) <= 0.02) {
@@ -278,72 +381,87 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     // toced_continuous = true;
     // terminal_reached_continuous = true;
     // return true;
-    if (flightpath == 0) {
-      if (waypoint_num_continuous == 1) {
-        waypoint_num_continuous = 2;
-        goal_state_(QS::POSY) = 5;
-      }
-      else if (waypoint_num_continuous == 2) {
-        waypoint_num_continuous = 3;
-        goal_state_(QS::POSX) = 0;
-      }
-      else if (waypoint_num_continuous == 3) {
-        waypoint_num_continuous = 4;
-        goal_state_(QS::POSY) = 0;
-      }
-      else if (waypoint_num_continuous == 4) {
-        waypoint_num_continuous = 1;
-        goal_state_(QS::POSX) = 5;
-      }
-      else {
-        toced_continuous = true;
-        terminal_reached_continuous = true;
-        return true;
-      }
+    // if (flightpath == 0) {
+    //   if (waypoint_num_continuous == 1) {
+    //     waypoint_num_continuous = 2;
+    //     goal_state_(QS::POSY) = 5;
+    //   }
+    //   else if (waypoint_num_continuous == 2) {
+    //     waypoint_num_continuous = 3;
+    //     goal_state_(QS::POSX) = 0;
+    //   }
+    //   else if (waypoint_num_continuous == 3) {
+    //     waypoint_num_continuous = 4;
+    //     goal_state_(QS::POSY) = 0;
+    //   }
+    //   else if (waypoint_num_continuous == 4) {
+    //     waypoint_num_continuous = 1;
+    //     goal_state_(QS::POSX) = 5;
+    //   }
+    //   else {
+    //     toced_continuous = true;
+    //     terminal_reached_continuous = true;
+    //     return true;
+    //   }
+    // }
+    // else if (flightpath == 1) {
+    //   if (waypoint_num_continuous == 1) {
+    //     waypoint_num_continuous = 2;
+    //     goal_state_(QS::POSX) = 6.2708;
+    //     goal_state_(QS::POSZ) = 7+-0.042849;
+    //   }
+    //   else if (waypoint_num_continuous == 2) {
+    //     waypoint_num_continuous = 3;
+    //     goal_state_(QS::POSX) = 9;
+    //     goal_state_(QS::POSZ) = 7;
+    //   }
+    //   else if (waypoint_num_continuous == 3) {
+    //     waypoint_num_continuous = 1;
+    //     goal_state_(QS::POSX) = 0;
+    //     goal_state_(QS::POSZ) = 7;
+    //   }
+    // }
+    // else if (flightpath == 2) {
+    //   if (waypoint_num_continuous == 1) {
+    //     waypoint_num_continuous = 2;
+    //     goal_state_(QS::POSX) = 8.0129;
+    //     goal_state_(QS::POSZ) = 7-1.3501;
+    //   }
+    //   else if (waypoint_num_continuous == 2) {
+    //     waypoint_num_continuous = 3;
+    //     goal_state_(QS::POSX) = 12.065;
+    //     goal_state_(QS::POSZ) = 7-1.346;
+    //   }
+    //   else if (waypoint_num_continuous == 3) {
+    //     waypoint_num_continuous = 4;
+    //     goal_state_(QS::POSX) = 16.043;
+    //     goal_state_(QS::POSZ) = 7-0.78063;
+    //   }
+    //   else if (waypoint_num_continuous == 4) {
+    //     waypoint_num_continuous = 5;
+    //     goal_state_(QS::POSX) = 20;
+    //     goal_state_(QS::POSZ) = 7;
+    //   }
+    //   else if (waypoint_num_continuous == 5) {
+    //     waypoint_num_continuous = 1;
+    //     goal_state_(QS::POSX) = 0;
+    //     goal_state_(QS::POSZ) = 7;
+    //   }
+    // }
+    std::string csv_path = "/home/jerry/adr_control_ws/flightmare_rev/flightmare/flightlib/src/envs/quadrotor_env/CPC16_Z1.csv";
+    std::vector<std::string> track_data;
+    std::vector<double> coordinates;
+    loadCSV(track_data, csv_path);
+    std::cout<<"Number of flights: "<<track_data.size()<<std::endl;
+    coordinates = setFlightPath(flightpath, waypoint_num_continuous, line_counter, track_data);
+    if(coordinates[0] != std::numeric_limits<double>::max()){
+      goal_state_(QS::POSX) = coordinates[0];
     }
-    else if (flightpath == 1) {
-      if (waypoint_num_continuous == 1) {
-        waypoint_num_continuous = 2;
-        goal_state_(QS::POSX) = 6.2708;
-        goal_state_(QS::POSZ) = 7+-0.042849;
-      }
-      else if (waypoint_num_continuous == 2) {
-        waypoint_num_continuous = 3;
-        goal_state_(QS::POSX) = 9;
-        goal_state_(QS::POSZ) = 7;
-      }
-      else if (waypoint_num_continuous == 3) {
-        waypoint_num_continuous = 1;
-        goal_state_(QS::POSX) = 0;
-        goal_state_(QS::POSZ) = 7;
-      }
+    if(coordinates[1] != std::numeric_limits<double>::max()){
+      goal_state_(QS::POSY) = coordinates[1];
     }
-    else if (flightpath == 2) {
-      if (waypoint_num_continuous == 1) {
-        waypoint_num_continuous = 2;
-        goal_state_(QS::POSX) = 8.0129;
-        goal_state_(QS::POSZ) = 7-1.3501;
-      }
-      else if (waypoint_num_continuous == 2) {
-        waypoint_num_continuous = 3;
-        goal_state_(QS::POSX) = 12.065;
-        goal_state_(QS::POSZ) = 7-1.346;
-      }
-      else if (waypoint_num_continuous == 3) {
-        waypoint_num_continuous = 4;
-        goal_state_(QS::POSX) = 16.043;
-        goal_state_(QS::POSZ) = 7-0.78063;
-      }
-      else if (waypoint_num_continuous == 4) {
-        waypoint_num_continuous = 5;
-        goal_state_(QS::POSX) = 20;
-        goal_state_(QS::POSZ) = 7;
-      }
-      else if (waypoint_num_continuous == 5) {
-        waypoint_num_continuous = 1;
-        goal_state_(QS::POSX) = 0;
-        goal_state_(QS::POSZ) = 7;
-      }
+    if(coordinates[2] != std::numeric_limits<double>::max()){
+      goal_state_(QS::POSZ) = coordinates[2];
     }
   }
   reward = 0.0;
