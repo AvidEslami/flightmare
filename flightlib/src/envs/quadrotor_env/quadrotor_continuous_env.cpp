@@ -15,7 +15,7 @@ int flightpath = 3;
 // 1: 9 Meter
 // 2: 15 Meter
 
-int line_counter = 10;
+int line_counter = 3;
 
 bool toced_continuous = false;
 
@@ -55,7 +55,7 @@ QuadrotorContinuousEnv::QuadrotorContinuousEnv(const std::string &cfg_path)
   // obs_dim_ = quadenv::kNObs * 2;
 
   // NEW APPROACH: Let us just focus on relative positions
-  obs_dim_ = quadenv::kNObs;
+  obs_dim_ = (quadenv::kNObs * 2) - 3;
 
 
   act_dim_ = quadenv::kNAct;
@@ -114,7 +114,26 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
     if (random) {
 
       quad_state_.setZero();
-      quad_state_.x(QS::POSZ) = 7.0;
+      // quad_state_.x(QS::POSZ) = 7.0;
+      quad_state_.x(QS::POSX) = -4.99;
+      quad_state_.x(QS::POSY) = 4.49;
+      quad_state_.x(QS::POSZ) = 1.20;
+      quad_state_.x(QS::ATTW) = 0.99;
+      quad_state_.x(QS::ATTX) = 0.03; 
+      quad_state_.x(QS::ATTY) = 0.008;
+      quad_state_.x(QS::ATTZ) = 0.001;
+      quad_state_.x(QS::VELX) = 0.002;
+      quad_state_.x(QS::VELY) = -0.01;
+      quad_state_.x(QS::VELZ) = 0.12;
+      quad_state_.x(QS::OMEX) = 4.49;
+      quad_state_.x(QS::OMEY) = 1.04;
+      quad_state_.x(QS::OMEZ) = 0.2;
+      quad_state_.x(QS::ACCX) = 0.05;
+      quad_state_.x(QS::ACCY) = -0.36;
+      quad_state_.x(QS::ACCZ) = 3.79;
+      quad_state_.x(QS::TAUX) = 138.4;
+      quad_state_.x(QS::TAUY) = 32.0;
+      quad_state_.x(QS::TAUZ) = 6.24;
       if (flightpath == 0) {
         goal_state_(QS::POSX) = 5;
       }
@@ -142,8 +161,26 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
       //   goal_state_(QS::POSX) = 0.0;
       // }
 
-      goal_state_(QS::POSY) = 0.0;
-      goal_state_(QS::POSZ) = 7.0;
+      // goal_state_(QS::POSY) = 0.0;
+      // goal_state_(QS::POSZ) = 7.0;
+      goal_state_(QS::POSX) = -4.99;
+      goal_state_(QS::POSY) = 4.49;
+      goal_state_(QS::POSZ) = 1.20;
+      goal_state_(QS::ATTW) = 0.99;
+      goal_state_(QS::ATTX) = 0.03; 
+      goal_state_(QS::ATTY) = 0.008;
+      goal_state_(QS::ATTZ) = 0.001;
+      goal_state_(QS::VELX) = 0.002;
+      goal_state_(QS::VELY) = -0.01;
+      goal_state_(QS::VELZ) = 0.12;
+      goal_state_(QS::OMEX) = 4.49;
+      goal_state_(QS::OMEY) = 1.04;
+      goal_state_(QS::OMEZ) = 0.2;
+      goal_state_(QS::ACCX) = 0.05;
+      goal_state_(QS::ACCY) = -0.36;
+      goal_state_(QS::ACCZ) = 3.79;
+    
+
     }
     
 
@@ -195,9 +232,18 @@ bool QuadrotorContinuousEnv::getObs(Ref<Vector<>> obs) {
 
   // NEW APPROACH: Let us just focus on relative positions
   //               This lets us reduce model size and improve performance/generalization speed
-  obs.segment<quadenv::kNObs>(quadenv::kObs) = goal_state_.segment<quadenv::kNObs>(quadenv::kObs) - quad_obs_.segment<quadenv::kNObs>(quadenv::kObs);
+  // obs.segment<quadenv::kNObs>(quadenv::kObs) = goal_state_.segment<quadenv::kNObs>(quadenv::kObs) - quad_obs_.segment<quadenv::kNObs>(quadenv::kObs);
   // Print current goal state
   std::cout << "Current Goal State: " << goal_state_(QS::POSX) << ", " << goal_state_(QS::POSY) << ", " << goal_state_(QS::POSZ) << std::endl;
+
+  obs.segment<quadenv::kNPos>(quadenv::kPos) = goal_state_.segment<quadenv::kNPos>(quadenv::kPos) - quad_obs_.segment<quadenv::kNPos>(quadenv::kPos);
+  obs.segment<quadenv::kNOri>(quadenv::kOri) = quad_obs_.segment<quadenv::kNOri>(quadenv::kOri);
+  obs.segment<quadenv::kNLinVel>(quadenv::kLinVel) = quad_obs_.segment<quadenv::kNLinVel>(quadenv::kLinVel);
+  obs.segment<quadenv::kNAngVel>(quadenv::kAngVel) = quad_obs_.segment<quadenv::kNAngVel>(quadenv::kAngVel);
+  obs.segment<quadenv::kNOri>(quadenv::kOri + 9) = goal_state_.segment<quadenv::kNOri>(quadenv::kOri);
+  obs.segment<quadenv::kNLinVel>(quadenv::kLinVel + 9) = goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel);
+  obs.segment<quadenv::kNAngVel>(quadenv::kAngVel + 9) = goal_state_.segment<quadenv::kNAngVel>(quadenv::kAngVel);
+
   // Print relative position and velocity and other states
   // std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
   // std::cout << "Relative Position: " << obs(0) << ", " << obs(1) << ", " << obs(2) << std::endl;
@@ -337,7 +383,7 @@ std::vector<double> setFlightPath(int flight_path, int& waypoint_num_continuous,
       }
       std::string line = csvFile[line_count];
       std::stringstream line_stream(line);
-      for(int i = 0; i < 4; i++){
+      for(int i = 0; i < 14; i++){
         std::string data;
         std::getline(line_stream, data, ',');
         if(i == 0){
@@ -347,7 +393,7 @@ std::vector<double> setFlightPath(int flight_path, int& waypoint_num_continuous,
           flight_coords.push_back(stod(data));
         }
       }
-      line_count += 10;
+      line_count += 3;
       waypoint_num_continuous++;
       if(line_count > csvFile.size()){
         waypoint_num_continuous = 1;
@@ -373,7 +419,7 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
   // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
   if (((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
        goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.3)) { // Temporarily increased to 0.1
+        .squaredNorm() < 0.1)) { // Temporarily increased to 0.1
     reward = 10.0;
     myTimer_continuous.toc();
     time_elapsed_continuous = myTimer_continuous.last();
@@ -448,7 +494,7 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     //     goal_state_(QS::POSZ) = 7;
     //   }
     // }
-    std::string csv_path = "/home/jerry/adr_control_ws/flightmare_rev/flightmare/flightlib/src/envs/quadrotor_env/CPC16_Z1.csv";
+    std::string csv_path = "/home/avidavid/Downloads/CPC16_Z1 (1).csv";
     std::vector<std::string> track_data;
     std::vector<double> coordinates;
     loadCSV(track_data, csv_path);
@@ -462,6 +508,36 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     }
     if(coordinates[2] != std::numeric_limits<double>::max()){
       goal_state_(QS::POSZ) = coordinates[2];
+    }
+    if(coordinates[3] != std::numeric_limits<double>::max()){
+      goal_state_(QS::ATTW) = coordinates[3];
+    }
+    if(coordinates[4] != std::numeric_limits<double>::max()){
+      goal_state_(QS::ATTX) = coordinates[4];
+    }
+    if(coordinates[5] != std::numeric_limits<double>::max()){
+      goal_state_(QS::ATTY) = coordinates[5];
+    }
+    if(coordinates[6] != std::numeric_limits<double>::max()){
+      goal_state_(QS::ATTZ) = coordinates[6];
+    }
+    if(coordinates[7] != std::numeric_limits<double>::max()){
+      goal_state_(QS::VELX) = coordinates[7];
+    }
+    if(coordinates[8] != std::numeric_limits<double>::max()){
+      goal_state_(QS::VELY) = coordinates[8];
+    }
+    if(coordinates[9] != std::numeric_limits<double>::max()){
+      goal_state_(QS::VELZ) = coordinates[9];
+    }
+    if(coordinates[10] != std::numeric_limits<double>::max()){
+      goal_state_(QS::OMEX) = coordinates[10];
+    }
+    if(coordinates[11] != std::numeric_limits<double>::max()){
+      goal_state_(QS::OMEY) = coordinates[11];
+    }
+    if(coordinates[12] != std::numeric_limits<double>::max()){
+      goal_state_(QS::OMEZ) = coordinates[12];
     }
   }
   reward = 0.0;
