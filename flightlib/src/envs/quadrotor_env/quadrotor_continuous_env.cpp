@@ -15,9 +15,11 @@ int flightpath = 3;
 // 1: 9 Meter
 // 2: 15 Meter
 
-int line_counter = 3;
+int line_counter = 15;
 
 bool toced_continuous = false;
+
+bool assist = true;
 
 QuadrotorContinuousEnv::QuadrotorContinuousEnv()
   : QuadrotorContinuousEnv(getenv("FLIGHTMARE_PATH") +
@@ -235,6 +237,8 @@ bool QuadrotorContinuousEnv::getObs(Ref<Vector<>> obs) {
   // obs.segment<quadenv::kNObs>(quadenv::kObs) = goal_state_.segment<quadenv::kNObs>(quadenv::kObs) - quad_obs_.segment<quadenv::kNObs>(quadenv::kObs);
   // Print current goal state
   std::cout << "Current Goal State: " << goal_state_(QS::POSX) << ", " << goal_state_(QS::POSY) << ", " << goal_state_(QS::POSZ) << std::endl;
+  // Print current quadrotor state
+  std::cout << "Current Quadrotor State: " << quad_obs_(QS::POSX) << ", " << quad_obs_(QS::POSY) << ", " << quad_obs_(QS::POSZ) << std::endl;
 
   obs.segment<quadenv::kNPos>(quadenv::kPos) = goal_state_.segment<quadenv::kNPos>(quadenv::kPos) - quad_obs_.segment<quadenv::kNPos>(quadenv::kPos);
   obs.segment<quadenv::kNOri>(quadenv::kOri) = quad_obs_.segment<quadenv::kNOri>(quadenv::kOri);
@@ -393,7 +397,7 @@ std::vector<double> setFlightPath(int flight_path, int& waypoint_num_continuous,
           flight_coords.push_back(stod(data));
         }
       }
-      line_count += 3;
+      line_count += 15;
       waypoint_num_continuous++;
       if(line_count > csvFile.size()){
         waypoint_num_continuous = 1;
@@ -417,9 +421,9 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
   //   return true;
   // }
   // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
-  if (((quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) -
+  if (((quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) -
        goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.1)) { // Temporarily increased to 0.1
+        .squaredNorm() < 0.5)) { // Temporarily increased to 0.1
     reward = 10.0;
     myTimer_continuous.toc();
     time_elapsed_continuous = myTimer_continuous.last();
@@ -494,12 +498,36 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     //     goal_state_(QS::POSZ) = 7;
     //   }
     // }
-    std::string csv_path = "/home/avidavid/Downloads/CPC16_Z1 (1).csv";
+    std::string csv_path = "/home/avidavid/Downloads/CPC25_Z1 (1).csv";
     std::vector<std::string> track_data;
     std::vector<double> coordinates;
     loadCSV(track_data, csv_path);
     std::cout<<"Number of flights: "<<track_data.size()<<std::endl;
     coordinates = setFlightPath(flightpath, waypoint_num_continuous, line_counter, track_data);
+
+    if (assist == true) {
+      // Set the current state to what the goal state was
+      quad_state_.setZero();
+      quad_act_.setZero();
+      quad_state_.x(QS::POSX) = goal_state_(QS::POSX);
+      quad_state_.x(QS::POSY) = goal_state_(QS::POSY);
+      quad_state_.x(QS::POSZ) = goal_state_(QS::POSZ);
+      quad_state_.x(QS::ATTW) = goal_state_(QS::ATTW);
+      quad_state_.x(QS::ATTX) = goal_state_(QS::ATTX);
+      quad_state_.x(QS::ATTY) = goal_state_(QS::ATTY);
+      quad_state_.x(QS::ATTZ) = goal_state_(QS::ATTZ);
+      quad_state_.x(QS::VELX) = goal_state_(QS::VELX);
+      quad_state_.x(QS::VELY) = goal_state_(QS::VELY);
+      quad_state_.x(QS::VELZ) = goal_state_(QS::VELZ);
+      quad_state_.x(QS::OMEX) = goal_state_(QS::OMEX);
+      quad_state_.x(QS::OMEY) = goal_state_(QS::OMEY);
+      quad_state_.x(QS::OMEZ) = goal_state_(QS::OMEZ);
+      quadrotor_ptr_->reset(quad_state_);
+      cmd_.t = 0.0;
+      cmd_.thrusts.setZero();
+      // getObs(obs);
+    }
+
     if(coordinates[0] != std::numeric_limits<double>::max()){
       goal_state_(QS::POSX) = coordinates[0];
     }
