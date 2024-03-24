@@ -71,8 +71,9 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
 
     float time_partition_window = 0.5f;
     // Pick a random number to choose which data file to use
-    std::uniform_int_distribution<int> data_file_dist(1, 2);
-    int data_file_choice = data_file_dist(random_gen_);
+    // std::uniform_int_distribution<int> data_file_dist(1, 2);
+    // int data_file_choice = data_file_dist(random_gen_);
+    int data_file_choice = 1;
     std::string dataPath;
     if (data_file_choice == 1){
       dataPath = dataPath1;
@@ -122,9 +123,9 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
         quad_state_.x(QS::OMEX) = std::stof(data[11]);
         quad_state_.x(QS::OMEY) = std::stof(data[12]);
         quad_state_.x(QS::OMEZ) = std::stof(data[13]);
-        quad_state_.x(QS::ACCX) = std::stof(data[14]);
-        quad_state_.x(QS::ACCY) = std::stof(data[15]);
-        quad_state_.x(QS::ACCZ) = std::stof(data[16]);
+        // quad_state_.x(QS::ACCX) = std::stof(data[14]);
+        // quad_state_.x(QS::ACCY) = std::stof(data[15]);
+        // quad_state_.x(QS::ACCZ) = std::stof(data[16]);
 
         // Add a small random noise to the initial state
         quad_state_.x(QS::POSX) += 0.1*uniform_dist_(random_gen_);
@@ -310,18 +311,18 @@ Scalar QuadrotorEnvByData::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
   Scalar ori_reward =
     ori_coeff_ * (quad_obs_.segment<quadenv::kNOri>(quadenv::kOri) -
                   goal_state_.segment<quadenv::kNOri>(quadenv::kOri))
-                   .squaredNorm();
+                   .squaredNorm()* 0.1;
   // - linear velocity tracking
   Scalar lin_vel_reward =
     lin_vel_coeff_ * (quad_obs_.segment<quadenv::kNLinVel>(quadenv::kLinVel) -
                       goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel))
-                       .squaredNorm();
+                       .squaredNorm() * 0.1;
 
   // - angular velocity tracking
   Scalar ang_vel_reward =
     ang_vel_coeff_ * (quad_obs_.segment<quadenv::kNAngVel>(quadenv::kAngVel) -
                       goal_state_.segment<quadenv::kNAngVel>(quadenv::kAngVel))
-                       .squaredNorm();
+                       .squaredNorm() * 0.1;
 
   // - control action penalty
   Scalar act_reward = act_coeff_ * act.cast<Scalar>().norm();
@@ -338,7 +339,7 @@ Scalar QuadrotorEnvByData::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
 bool QuadrotorEnvByData::isTerminalState(Scalar &reward) {
   if ((((quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) -
        goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.1))) {
+        .squaredNorm() < 0.045))) {
     // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
     // double dist = (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).squaredNorm();
     // double power = -0.5*std::pow(dist/0.5, 2);
@@ -349,14 +350,14 @@ bool QuadrotorEnvByData::isTerminalState(Scalar &reward) {
     // // MAXIMUM REWARD FROM VELOCITY: 40.0, MINIMUM REWARD FROM VELOCITY: 0.0
     double vel_dist = (quad_state_.x.segment<quadenv::kNLinVel>(quadenv::kLinVel) - goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel)).squaredNorm();
     double vel_power = -0.5*std::pow(vel_dist/0.5, 2);
-    reward += 40.0*std::exp(vel_power);
+    reward += 50.0*std::exp(vel_power);
 
 
     // Use a bell curve to reward the drone for having a terminal orientation that is very close to the desired orientation
     // MAXIMUM REWARD FROM ORIENTATION: 40.0, MINIMUM REWARD FROM ORIENTATION: 0.0
     double ori_dist = (quad_state_.x.segment<quadenv::kNOri>(quadenv::kOri) - goal_state_.segment<quadenv::kNOri>(quadenv::kOri)).squaredNorm();
     double ori_power = -0.5*std::pow(ori_dist/0.5, 2);
-    reward += 40.0*std::exp(ori_power);
+    reward += 50.0*std::exp(ori_power);
     std::cout << "Terminal Reward: " << reward << std::endl;
     return true;
   }
