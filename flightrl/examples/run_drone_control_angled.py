@@ -75,7 +75,7 @@ def main():
             tensorboard_log=saver.data_dir,
             policy=MlpPolicy,  # check activation function
             policy_kwargs=dict(
-                net_arch=[dict(pi=[128, 128], vf=[128, 128])], act_fun=tf.nn.relu),
+                net_arch=[dict(pi=[128, 128], vf=[128, 128])], act_fun=tf.nn.leaky_relu),
             env=env,
             lam=0.95,
             gamma=0.99,  # lower 0.9 ~ 0.99
@@ -103,7 +103,7 @@ def main():
         # 2000000000 is 4000 iterations.
         logger.configure(folder=saver.data_dir)
         model.learn(
-            total_timesteps=int(40000000),
+            total_timesteps=int(25000000),
             log_dir=saver.data_dir, logger=logger)
         model.save(saver.data_dir)
 
