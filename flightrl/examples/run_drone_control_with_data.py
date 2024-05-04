@@ -75,7 +75,7 @@ def main():
             tensorboard_log=saver.data_dir,
             policy=MlpPolicy,  # check activation function
             policy_kwargs=dict(
-                net_arch=[dict(pi=[128, 128], vf=[128, 128])], act_fun=tf.nn.relu),
+                net_arch=[dict(pi=[128, 128], vf=[128, 128])], act_fun=tf.nn.leaky_relu),
             env=env,
             lam=0.95,
             gamma=0.99,  # lower 0.9 ~ 0.99
