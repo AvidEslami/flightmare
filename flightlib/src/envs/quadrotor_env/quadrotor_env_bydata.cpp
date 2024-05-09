@@ -10,6 +10,9 @@ std::string dataPath1 = "/home/avidavid/Downloads/CPC16_Z1 (1).csv";
 std::string dataPath2 = "/home/avidavid/Downloads/CPC25_Z1 (1).csv";
 std::string dataPath3 = "/home/avidavid/Downloads/CPC33_Z1 (1).csv";
 
+// Store second last state and use it for computing bell curve rewards at terminal state
+// Vector<quadenv::kNObs> second_last_state;
+
 
 QuadrotorEnvByData::QuadrotorEnvByData(const std::string &cfg_path)
   : EnvBase(),
@@ -128,12 +131,12 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
         // quad_state_.x(QS::ACCZ) = std::stof(data[16]);
 
         // Add a small random noise to the initial state
-        quad_state_.x(QS::POSX) += 0.1*uniform_dist_(random_gen_);
-        quad_state_.x(QS::POSY) += 0.1*uniform_dist_(random_gen_);
-        quad_state_.x(QS::POSZ) += 0.1*uniform_dist_(random_gen_);
-        quad_state_.x(QS::VELX) += 0.1*uniform_dist_(random_gen_);
-        quad_state_.x(QS::VELY) += 0.1*uniform_dist_(random_gen_);
-        quad_state_.x(QS::VELZ) += 0.1*uniform_dist_(random_gen_);
+        quad_state_.x(QS::POSX) += 0.4*uniform_dist_(random_gen_);
+        quad_state_.x(QS::POSY) += 0.4*uniform_dist_(random_gen_);
+        quad_state_.x(QS::POSZ) += 0.4*uniform_dist_(random_gen_);
+        quad_state_.x(QS::VELX) += 0.4*uniform_dist_(random_gen_);
+        quad_state_.x(QS::VELY) += 0.4*uniform_dist_(random_gen_);
+        quad_state_.x(QS::VELZ) += 0.4*uniform_dist_(random_gen_);
         
         break;
       }
@@ -142,15 +145,27 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
     // printf("Starting at time: %f\n", initial_time);
     // printf("Starting at position: %f, %f, %f\n", quad_state_.x(QS::POSX), quad_state_.x(QS::POSY), quad_state_.x(QS::POSZ));
     // Check next line for time_partition_window
-    while (std::getline(dataFile, line)){
-      std::istringstream iss(line);
-      std::vector<std::string> data;
-      std::string token;
-      while (std::getline(iss, token, ',')) {
-        data.push_back(token);
-      }
 
-      if (std::stof(data[0]) - initial_time > time_partition_window){
+
+    // while (std::getline(dataFile, line)){
+    //   std::istringstream iss(line);
+    //   std::vector<std::string> data;
+    //   std::string token;
+    //   while (std::getline(iss, token, ',')) {
+    //     data.push_back(token);
+    //   }
+
+      // if (std::stof(data[0]) - initial_time > time_partition_window){
+      // If the current line is 15 lines away from the initial point, then we can use this as the goal state
+      for (int i = 0; i < 25; i++){
+        std::getline(dataFile, line);
+        std::istringstream iss(line);
+        std::vector<std::string> data;
+        std::string token;
+        while (std::getline(iss, token, ',')) {
+          data.push_back(token);
+        }
+      if (i == 24) {
         // printf("Next time: %f\n", std::stof(data[0]));
         goal_state_(QS::POSX) = std::stof(data[1]);
         goal_state_(QS::POSY) = std::stof(data[2]);
@@ -271,6 +286,7 @@ bool QuadrotorEnvByData::getObs(Ref<Vector<>> obs) {
   obs.segment<quadenv::kNOri>(quadenv::kOri) = quad_obs_.segment<quadenv::kNOri>(quadenv::kOri);
   obs.segment<quadenv::kNLinVel>(quadenv::kLinVel) = quad_obs_.segment<quadenv::kNLinVel>(quadenv::kLinVel);
   obs.segment<quadenv::kNAngVel>(quadenv::kAngVel) = quad_obs_.segment<quadenv::kNAngVel>(quadenv::kAngVel);
+
   obs.segment<quadenv::kNOri>(quadenv::kOri + 9) = goal_state_.segment<quadenv::kNOri>(quadenv::kOri);
   obs.segment<quadenv::kNLinVel>(quadenv::kLinVel + 9) = goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel);
   obs.segment<quadenv::kNAngVel>(quadenv::kAngVel + 9) = goal_state_.segment<quadenv::kNAngVel>(quadenv::kAngVel);
@@ -325,13 +341,13 @@ Scalar QuadrotorEnvByData::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
                        .squaredNorm() * 0.1;
 
   // - control action penalty
-  Scalar act_reward = act_coeff_ * act.cast<Scalar>().norm();
+  Scalar act_reward = act_coeff_ * act.cast<Scalar>().norm() * 0.5;
 
   Scalar total_reward =
     pos_reward + act_reward + ori_reward + ang_vel_reward + lin_vel_reward;
 
   // survival reward
-  total_reward += 0.05;
+  total_reward += 0.04;
 
   return total_reward;
 }
@@ -339,12 +355,13 @@ Scalar QuadrotorEnvByData::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
 bool QuadrotorEnvByData::isTerminalState(Scalar &reward) {
   if ((((quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) -
        goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.045))) {
+        .squaredNorm() < 0.02))) {
     // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
     // double dist = (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).squaredNorm();
     // double power = -0.5*std::pow(dist/0.5, 2);
     // reward = 10.0*std::exp(power);
-    reward = 30.0;
+    // reward = 30.0;
+    // reward = 0;
 
     // // Use a bell curve to reward the drone for having a velocity that is very close to the desired velocity
     // // MAXIMUM REWARD FROM VELOCITY: 40.0, MINIMUM REWARD FROM VELOCITY: 0.0
@@ -366,7 +383,7 @@ bool QuadrotorEnvByData::isTerminalState(Scalar &reward) {
     return true;
   }
   else {
-    reward = 0.0;
+    // reward = 0.0;
     return false;
   }
 }

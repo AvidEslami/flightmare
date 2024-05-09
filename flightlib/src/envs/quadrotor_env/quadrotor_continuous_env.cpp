@@ -15,7 +15,8 @@ int flightpath = 3;
 // 1: 9 Meter
 // 2: 15 Meter
 
-int line_counter = 12;
+int line_counter = 8;
+int eff_line_counter = 15;
 
 bool toced_continuous = false;
 
@@ -401,7 +402,7 @@ std::vector<double> setFlightPath(int flight_path, int& waypoint_num_continuous,
           flight_coords.push_back(stod(data));
         }
       }
-      line_count += 8;
+      line_count += eff_line_counter;
       waypoint_num_continuous++;
       if(line_count > csvFile.size()){
         waypoint_num_continuous = 1;
@@ -432,7 +433,7 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
   // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
   if (((quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) -
        goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.038)) { // Temporarily increased to 0.1
+        .squaredNorm() < 0.045)) { // Temporarily increased to 0.1
     reward = 10.0;
     myTimer_continuous.toc();
     time_elapsed_continuous = myTimer_continuous.last();
