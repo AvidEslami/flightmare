@@ -9,6 +9,8 @@ QuadrotorEnvByData::QuadrotorEnvByData()
 std::string dataPath1 = "/home/avidavid/Downloads/CPC16_Z1 (1).csv";
 std::string dataPath2 = "/home/avidavid/Downloads/CPC25_Z1 (1).csv";
 std::string dataPath3 = "/home/avidavid/Downloads/CPC33_Z1 (1).csv";
+std::string dataPath4 = "/home/joshua/Downloads/random_states.csv";
+
 
 // Store second last state and use it for computing bell curve rewards at terminal state
 // Vector<quadenv::kNObs> second_last_state;
@@ -67,6 +69,8 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
   quad_state_.setZero();
   quad_act_.setZero();
 
+  bool point_to_point = true;
+
   if (random) {
     // randomly reset the quadrotor state
     quad_state_.setZero();
@@ -78,7 +82,11 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
     // int data_file_choice = data_file_dist(random_gen_);
     int data_file_choice = 1;
     std::string dataPath;
-    if (data_file_choice == 1){
+
+    if (point_to_point) {
+      dataPath = dataPath4;
+    }
+    else if (data_file_choice == 1){
       dataPath = dataPath1;
     }
     else if (data_file_choice == 2){
@@ -93,14 +101,24 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
     while (std::getline(dataFile, line)){
       number_of_lines++;
     }
-
     // printf("Number of lines: %d\n", number_of_lines);
 
     dataFile.clear();
     dataFile.seekg(0, std::ios::beg);
-    std::uniform_int_distribution<int> initial_point(2, number_of_lines-25);
+    int initial_point_index = 0;
+    if (point_to_point) {
+      std::uniform_int_distribution<int> initial_point(2, number_of_lines);
+      initial_point_index = initial_point(random_gen_);
 
-    int initial_point_index = initial_point(random_gen_);
+      while (initial_point_index % 2 != 0)
+        initial_point_index = initial_point(random_gen_);
+    }
+    else {
+      std::uniform_int_distribution<int> initial_point(2, number_of_lines-25);
+
+      initial_point_index = initial_point(random_gen_);
+    }
+      
     int current_line = 0;
     float initial_time = 0.0f;
     while (std::getline(dataFile, line)){
@@ -142,30 +160,35 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
       }
     }
 
-    // printf("Starting at time: %f\n", initial_time);
-    // printf("Starting at position: %f, %f, %f\n", quad_state_.x(QS::POSX), quad_state_.x(QS::POSY), quad_state_.x(QS::POSZ));
-    // Check next line for time_partition_window
+      // printf("Starting at time: %f\n", initial_time);
+      // printf("Starting at position: %f, %f, %f\n", quad_state_.x(QS::POSX), quad_state_.x(QS::POSY), quad_state_.x(QS::POSZ));
+      // Check next line for time_partition_window
 
 
-    // while (std::getline(dataFile, line)){
-    //   std::istringstream iss(line);
-    //   std::vector<std::string> data;
-    //   std::string token;
-    //   while (std::getline(iss, token, ',')) {
-    //     data.push_back(token);
-    //   }
+      // while (std::getline(dataFile, line)){
+      //   std::istringstream iss(line);
+      //   std::vector<std::string> data;
+      //   std::string token;
+      //   while (std::getline(iss, token, ',')) {
+      //     data.push_back(token);
+      //   }
+    int next_point_distance = 0;
+    if (point_to_point)
+      next_point_distance = 1;
+    else
+      next_point_distance = 25;
 
-      // if (std::stof(data[0]) - initial_time > time_partition_window){
-      // If the current line is 15 lines away from the initial point, then we can use this as the goal state
-      for (int i = 0; i < 25; i++){
-        std::getline(dataFile, line);
-        std::istringstream iss(line);
-        std::vector<std::string> data;
-        std::string token;
-        while (std::getline(iss, token, ',')) {
-          data.push_back(token);
-        }
-      if (i == 24) {
+    // if (std::stof(data[0]) - initial_time > time_partition_window){
+    // If the current line is 15 lines away from the initial point, then we can use this as the goal state
+    for (int i = 0; i < next_point_distance; i++){
+      std::getline(dataFile, line);
+      std::istringstream iss(line);
+      std::vector<std::string> data;
+      std::string token;
+      while (std::getline(iss, token, ',')) {
+        data.push_back(token);
+      }
+      if (i == next_point_distance - 1) {
         // printf("Next time: %f\n", std::stof(data[0]));
         goal_state_(QS::POSX) = std::stof(data[1]);
         goal_state_(QS::POSY) = std::stof(data[2]);
