@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
     quad_ptr->setState(quad_state);
 
     auto gate_position = gate_3->getPosition();
-    gate_position(0) = (Scalar)desired_pose.position.x();
+    gate_position(0) = (Scalar)desired_pose.position.y();
     gate_3->setPosition(gate_position);
 
     unity_bridge_ptr->getRender(frame_id);
@@ -122,6 +122,9 @@ int main(int argc, char *argv[]) {
 
     //
     frame_id += 1;
+
+    ROS_INFO("Time: %f", (ros::Time::now() - t0).toSec());
+
   }
 
   return 0;
