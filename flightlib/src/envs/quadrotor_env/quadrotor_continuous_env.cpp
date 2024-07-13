@@ -2,6 +2,12 @@
 
 namespace flightlib {
 
+std::string object_id_1 = "Gate #"; // Unique name
+
+std::string prefab_id_1 = "rpg_gate"; // Name of the prefab in the Assets/Resources folder
+
+std::vector<std::shared_ptr<StaticGate>> gates; // = std::make_shared<StaticGate>(object_id, prefab_id);
+
 int waypoint_num_continuous = 0;
 
 flightlib::Timer myTimer_continuous("myTimer_continuous", "starter_module");
@@ -23,6 +29,8 @@ bool toced_continuous = false;
 bool completed_lap = false;
 
 bool assist = true;
+
+void loadCSV(std::vector<std::string>& flight_data, std::string csv_path);
 
 QuadrotorContinuousEnv::QuadrotorContinuousEnv()
   : QuadrotorContinuousEnv(getenv("FLIGHTMARE_PATH") +
@@ -71,6 +79,81 @@ QuadrotorContinuousEnv::QuadrotorContinuousEnv(const std::string &cfg_path)
 
   // load parameters
   loadParam(cfg_);
+
+
+  std::string csv_path = "/home/artin/Downloads/CPC16_Z1.csv";
+  std::vector<std::string> track_data;
+  loadCSV(track_data, csv_path);
+
+  // Load the gates
+  gates.clear();
+  gates.resize(0);
+
+  int num_gates = 15;
+
+  int step = track_data.size()/num_gates;
+
+  int line_count = 1;
+
+  std::cout<<"Size: "<<track_data.size()<<std::endl;
+
+  while (line_count < track_data.size()) {
+    std::string line = track_data[line_count];
+    std::stringstream line_stream(line);
+    std::vector<double> coordinates;
+    for(int i = 0; i < 14; i++){
+      std::string data;
+      std::getline(line_stream, data, ',');
+      if(i == 0){
+        continue;
+      }
+      else{
+        std::cout<<"Data: "<<data<<std::endl;
+        coordinates.push_back(stod(data));
+      }
+    }
+    line_count += step;
+    std::stringstream ss;
+    ss << line_count;
+
+    // make square gates appear circular at appropriate coords by combining multiple gates of different rotations
+
+    // gate 1
+    ss << "_1";
+    std::shared_ptr<StaticGate> gate = std::make_shared<StaticGate>(object_id_1+ss.str(), prefab_id_1);
+    gate->setSize(Eigen::Vector3f(0.07, 0.07, 0.07));
+    gate->setPosition(Eigen::Vector3f(coordinates[0], coordinates[1], coordinates[2]  + 5));
+    gate->setQuaternion(Quaternion(std::cos(M_PI), 0.0, 0.0, 1)); // define first gate at rotation specified
+    gates.push_back(gate);
+
+    // gate 2
+    ss << "_2";
+    gate = std::make_shared<StaticGate>(object_id_1+ss.str(), prefab_id_1);
+    gate->setSize(Eigen::Vector3f(0.07, 0.07, 0.07));
+    gate->setPosition(Eigen::Vector3f(coordinates[0], coordinates[1], coordinates[2]  + 5));
+    gate->setQuaternion(Quaternion(std::cos(0.5 * M_PI), 0.0, 0.0, 1)); // define second gate at rotation specified
+    gates.push_back(gate);
+
+    // gate 3
+    ss << "_3";
+    gate = std::make_shared<StaticGate>(object_id_1+ss.str(), prefab_id_1);
+    gate->setSize(Eigen::Vector3f(0.07, 0.07, 0.07));
+    gate->setPosition(Eigen::Vector3f(coordinates[0], coordinates[1], coordinates[2]  + 5));
+    gate->setQuaternion(Quaternion(std::cos(0.25 * M_PI), 1.0, 0.0, 0)); // define third gate at rotation specified
+    gates.push_back(gate);
+  
+    // // gate 3
+    // ss << "_3";
+    // gate = std::make_shared<StaticGate>(object_id_1+ss.str(), prefab_id_1);
+    // gate->setSize(Eigen::Vector3f(0.07, 0.07, 0.07));
+    // gate->setPosition(Eigen::Vector3f(coordinates[0], coordinates[1], coordinates[2]  + 5));
+    // gate->setQuaternion(Quaternion(std::cos(0.25 * M_PI), 0.0, 1.0, 0)); // define third gate at rotation specified
+    // gates.push_back(gate);
+    
+    // std::shared_ptr<StaticGate> gate = std::make_shared<StaticGate>(object_id_1+ss.str(), prefab_id_1);
+    // gate->setSize(Eigen::Vector3f(0.07, 0.07, 0.07));
+    // gates.push_back(gate);
+  }
 }
 
 QuadrotorContinuousEnv::~QuadrotorContinuousEnv() {}
@@ -262,6 +345,10 @@ bool QuadrotorContinuousEnv::getObs(Ref<Vector<>> obs) {
 }
 
 Scalar QuadrotorContinuousEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
+  // delay for demo
+  // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ///////////////////////////
+
   quad_act_ = act.cwiseProduct(act_std_) + act_mean_;
   cmd_.t += sim_dt_;
   cmd_.thrusts = quad_act_;
@@ -508,7 +595,7 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     //     goal_state_(QS::POSZ) = 7;
     //   }
     // }
-    std::string csv_path = "/home/avidavid/Downloads/CPC16_Z1 (1).csv";
+    std::string csv_path = "/home/artin/Downloads/CPC16_Z1.csv";
     std::vector<std::string> track_data;
     std::vector<double> coordinates;
     loadCSV(track_data, csv_path);
@@ -632,6 +719,10 @@ bool QuadrotorContinuousEnv::getAct(Command *const cmd) const {
 
 void QuadrotorContinuousEnv::addObjectsToUnity(std::shared_ptr<UnityBridge> bridge) {
   bridge->addQuadrotor(quadrotor_ptr_);
+  for (int i = 0; i < gates.size(); i++) {
+    std::cout << "Adding Gate: " << i << std::endl;
+    bridge->addStaticObject(gates[i]);
+  }
 }
 
 std::ostream &operator<<(std::ostream &os, const QuadrotorContinuousEnv &quad_env) {
