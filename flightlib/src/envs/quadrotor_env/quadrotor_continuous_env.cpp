@@ -2,6 +2,8 @@
 
 namespace flightlib {
 
+std::string data_folder = "/home/artin/Desktop/flightmare/data/velocities.txt";
+
 std::string object_id_1 = "Gate #"; // Unique name
 
 std::string prefab_id_1 = "rpg_gate"; // Name of the prefab in the Assets/Resources folder
@@ -80,6 +82,7 @@ QuadrotorContinuousEnv::QuadrotorContinuousEnv(const std::string &cfg_path)
   // load parameters
   loadParam(cfg_);
 
+  std::ofstream file(data_folder, std::ios_base::trunc);
 
   std::string csv_path = "/home/artin/Downloads/CPC16_Z1.csv";
   std::vector<std::string> track_data;
@@ -607,6 +610,24 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
       // quad_state_.setZero();
       // quad_state_.x.setZero();
       // quad_act_.setZero();
+
+      double diffX = quad_state_.x(QS::VELX) - goal_state_(QS::VELX);
+      double diffY = quad_state_.x(QS::VELY) - goal_state_(QS::VELY);
+      double diffZ = quad_state_.x(QS::VELZ) - goal_state_(QS::VELZ);
+
+      std::cout<<"Differences of Velocities: "<<std::endl;
+      std::cout<<"DiffX: "<<std::abs(diffX/goal_state_(QS::VELX))<<", DiffY: "<<std::abs(diffY/goal_state_(QS::VELY))<<", DiffZ: "<<std::abs(diffZ/goal_state_(QS::VELZ))<<std::endl;
+
+      // add differences and percentages to text file in data_folder folder path
+      std::ofstream myfile; 
+      myfile.open(data_folder, std::ios_base::app);
+      myfile <<std::abs(diffX/goal_state_(QS::VELX)) << " " << std::abs(diffY/goal_state_(QS::VELY)) << " " << std::abs(diffZ/goal_state_(QS::VELZ)) << std::endl;
+      // add goal state velocities
+      myfile << goal_state_(QS::VELX) << " " << goal_state_(QS::VELY) << " " << goal_state_(QS::VELZ) << std::endl;
+      // add current state velocities
+      myfile << quad_state_.x(QS::VELX) << " " << quad_state_.x(QS::VELY) << " " << quad_state_.x(QS::VELZ) << std::endl;
+      myfile.close();
+
       quad_state_.x(QS::POSX) = goal_state_(QS::POSX);
       quad_state_.x(QS::POSY) = goal_state_(QS::POSY);
       quad_state_.x(QS::POSZ) = goal_state_(QS::POSZ);

@@ -1,7 +1,7 @@
 import pandas as pd
 
 # We would like to plot the progress of the training of the model "true_reward"
-file_path = "/home/avidavid/DeepFlightSim/flightmare/flightrl/examples/successes/2024-03-24-01-20-43/progress.csv"
+file_path = "/home/artin/Desktop/flightmare/flightrl/examples/successes/2024-03-24-01-20-43/progress.csv"
 data = pd.read_csv(file_path)
 
 # Data has the following format
