@@ -2,7 +2,9 @@
 
 namespace flightlib {
 
-std::string data_folder = "/home/artin/Desktop/flightmare/data/velocities.txt";
+std::string v_data_folder = "/home/artin/Desktop/flightmare/data/velocities.txt";
+std::string p_data_folder = "/home/artin/Desktop/flightmare/data/positions.txt";
+std::string o_data_folder = "/home/artin/Desktop/flightmare/data/orientations.txt";
 
 std::string object_id_1 = "Gate #"; // Unique name
 
@@ -33,6 +35,8 @@ bool completed_lap = false;
 bool assist = true;
 
 void loadCSV(std::vector<std::string>& flight_data, std::string csv_path);
+
+Vector<quadenv::kNObs> prev_goal_state_;
 
 QuadrotorContinuousEnv::QuadrotorContinuousEnv()
   : QuadrotorContinuousEnv(getenv("FLIGHTMARE_PATH") +
@@ -82,7 +86,12 @@ QuadrotorContinuousEnv::QuadrotorContinuousEnv(const std::string &cfg_path)
   // load parameters
   loadParam(cfg_);
 
-  std::ofstream file(data_folder, std::ios_base::trunc);
+  std::ofstream file(v_data_folder, std::ios_base::trunc);
+  file.close();
+  std::ofstream file2(p_data_folder, std::ios_base::trunc);
+  file2.close();
+  std::ofstream file3(o_data_folder, std::ios_base::trunc);
+  file3.close();
 
   std::string csv_path = "/home/artin/Downloads/CPC16_Z1.csv";
   std::vector<std::string> track_data;
@@ -279,6 +288,9 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
     std::cout << "waypoint_num_continuous: " << waypoint_num_continuous << std::endl;
     // Print Starting Position and Goal Position
     std::cout << "Starting Position: " << quad_state_.x(QS::POSX) << ", " << quad_state_.x(QS::POSY) << ", " << quad_state_.x(QS::POSZ) << std::endl;
+    prev_goal_state_(QS::POSX) = quad_state_.x(QS::POSX);
+    prev_goal_state_(QS::POSY) = quad_state_.x(QS::POSY);
+    prev_goal_state_(QS::POSZ) = quad_state_.x(QS::POSZ);
     std::cout << "Goal Position: " << goal_state_(QS::POSX) << ", " << goal_state_(QS::POSY) << ", " << goal_state_(QS::POSZ) << std::endl;
     // reset quadrotor with random states
 
@@ -521,9 +533,31 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
   //   return true;
   // }
   // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
-  if (((quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) -
+  
+  bool hitSphere = ((quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) -
        goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.045)) { // Temporarily increased to 0.1
+        .squaredNorm() < 0.045);
+
+  // check if prev_goal_state_ is initialized
+  // vector from prev goal state to goal state 
+  Vector<quadenv::kNPos> prev_to_goal = goal_state_.segment<quadenv::kNPos>(quadenv::kPos) - prev_goal_state_.segment<quadenv::kNPos>(quadenv::kPos);
+  // plane at goal state with normal of prev_to_goal
+  Vector<quadenv::kNPos> plane_normal = prev_to_goal.normalized();
+  Vector<quadenv::kNPos> plane_point = goal_state_.segment<quadenv::kNPos>(quadenv::kPos);
+  Vector<quadenv::kNPos> quad_pos = quad_state_.x.segment<quadenv::kNPos>(QS::POSX);
+  Vector<quadenv::kNPos> quad_to_plane = quad_pos - plane_point;
+  Scalar dist_to_plane = quad_to_plane.dot(plane_normal);
+  std::cout << "Previous Goal State: " << prev_goal_state_(QS::POSX) << ", " << prev_goal_state_(QS::POSY) << ", " << prev_goal_state_(QS::POSZ) << std::endl;
+  // print dist to plane
+  std::cout << "Distance to Plane: " << dist_to_plane << std::endl;
+  std::cout << "Current Goal State: " << goal_state_(QS::POSX) << ", " << goal_state_(QS::POSY) << ", " << goal_state_(QS::POSZ) << std::endl;
+
+  // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+  bool hitPlane = abs(dist_to_plane) <0.1;
+  
+  if (hitPlane) { // Temporarily increased to 0.1
+    std::cout << "Hit Plane" << std::endl;
     reward = 10.0;
     myTimer_continuous.toc();
     time_elapsed_continuous = myTimer_continuous.last();
@@ -616,17 +650,52 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
       double diffZ = quad_state_.x(QS::VELZ) - goal_state_(QS::VELZ);
 
       std::cout<<"Differences of Velocities: "<<std::endl;
-      std::cout<<"DiffX: "<<std::abs(diffX/goal_state_(QS::VELX))<<", DiffY: "<<std::abs(diffY/goal_state_(QS::VELY))<<", DiffZ: "<<std::abs(diffZ/goal_state_(QS::VELZ))<<std::endl;
 
-      // add differences and percentages to text file in data_folder folder path
-      std::ofstream myfile; 
-      myfile.open(data_folder, std::ios_base::app);
-      myfile <<std::abs(diffX/goal_state_(QS::VELX)) << " " << std::abs(diffY/goal_state_(QS::VELY)) << " " << std::abs(diffZ/goal_state_(QS::VELZ)) << std::endl;
+      // add differences and percentages to text file in v_data_folder folder path
+      std::ofstream v_file; 
+      v_file.open(v_data_folder, std::ios_base::app);
+      v_file <<std::abs(diffX) << " " << std::abs(diffY) << " " << std::abs(diffZ) << std::endl;
       // add goal state velocities
-      myfile << goal_state_(QS::VELX) << " " << goal_state_(QS::VELY) << " " << goal_state_(QS::VELZ) << std::endl;
+      v_file << goal_state_(QS::VELX) << " " << goal_state_(QS::VELY) << " " << goal_state_(QS::VELZ) << std::endl;
       // add current state velocities
-      myfile << quad_state_.x(QS::VELX) << " " << quad_state_.x(QS::VELY) << " " << quad_state_.x(QS::VELZ) << std::endl;
-      myfile.close();
+      v_file << quad_state_.x(QS::VELX) << " " << quad_state_.x(QS::VELY) << " " << quad_state_.x(QS::VELZ) << std::endl;
+      v_file.close();
+
+      std::cout<<"Differences of Positions: "<<std::endl;
+
+      // add differences and percentages to text file in p_data_folder folder path
+      std::ofstream p_file;
+      p_file.open(p_data_folder, std::ios_base::app);
+      p_file <<std::abs(quad_state_.x(QS::POSX) - goal_state_(QS::POSX)) << " " << std::abs(quad_state_.x(QS::POSY) - goal_state_(QS::POSY)) << " " << std::abs(quad_state_.x(QS::POSZ) - goal_state_(QS::POSZ)) << std::endl;
+      // add goal state positions
+      p_file << goal_state_(QS::POSX) << " " << goal_state_(QS::POSY) << " " << goal_state_(QS::POSZ) << std::endl;
+      // add current state positions
+      p_file << quad_state_.x(QS::POSX) << " " << quad_state_.x(QS::POSY) << " " << quad_state_.x(QS::POSZ) << std::endl;
+      p_file.close();
+
+      // add differences and percentages to text file in o_data_folder folder path
+      std::ofstream o_file;
+      o_file.open(o_data_folder, std::ios_base::app);
+      // convert quaternion to euler angle
+      Vector<3> current_euler_zyx = quad_state_.q().toRotationMatrix().eulerAngles(2, 1, 0);
+      Vector<3> goal_euler_zyx = Quaternion(goal_state_(QS::ATTW), goal_state_(QS::ATTX), goal_state_(QS::ATTY), goal_state_(QS::ATTZ)).toRotationMatrix().eulerAngles(2, 1, 0);
+
+      // convert to degrees
+      current_euler_zyx = current_euler_zyx * 180.0 / M_PI;
+      goal_euler_zyx = goal_euler_zyx * 180.0 / M_PI;
+
+      // add differences and percentages to text file in o_data_folder folder path
+      int o_diffs1[3] = {std::abs(current_euler_zyx(0) - goal_euler_zyx(0)), std::abs(current_euler_zyx(1) - goal_euler_zyx(1)), std::abs(current_euler_zyx(2) - goal_euler_zyx(2))};
+      int o_diffs2[3] = {std::abs((current_euler_zyx(0)) - (180+goal_euler_zyx(0))), std::abs((-180+current_euler_zyx(1)) - (180+goal_euler_zyx(1))), std::abs((-180+current_euler_zyx(2)) - (180+goal_euler_zyx(2)))};
+      int o_diffs3[3] = {std::abs((current_euler_zyx(0)) - (-180+goal_euler_zyx(0))), std::abs((180+current_euler_zyx(1)) - (-180+goal_euler_zyx(1))), std::abs((180+current_euler_zyx(2)) - (-180+goal_euler_zyx(2)))};
+
+      int o_diffs_min[3] = {std::min(o_diffs1[0], std::min(o_diffs2[0], o_diffs3[0])), std::min(o_diffs1[1], std::min(o_diffs2[1], o_diffs3[1])), std::min(o_diffs1[2], std::min(o_diffs2[2], o_diffs3[2]))};
+
+      o_file << o_diffs_min[0] << " " << o_diffs_min[1] << " " << o_diffs_min[2] << std::endl;
+      o_file << goal_euler_zyx(0) << " " << goal_euler_zyx(1) << " " << goal_euler_zyx(2) << std::endl;
+      // add current state orientations
+      o_file << current_euler_zyx(0) << " " << current_euler_zyx(1) << " " << current_euler_zyx(2) << std::endl;
+      o_file.close();
 
       quad_state_.x(QS::POSX) = goal_state_(QS::POSX);
       quad_state_.x(QS::POSY) = goal_state_(QS::POSY);
@@ -649,6 +718,10 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
       // cmd_.thrusts.setZero();
       // getObs(obs);
     }
+
+    prev_goal_state_(QS::POSX) = goal_state_(QS::POSX);
+    prev_goal_state_(QS::POSY) = goal_state_(QS::POSY);
+    prev_goal_state_(QS::POSZ) = goal_state_(QS::POSZ);
 
     if(coordinates[0] != std::numeric_limits<double>::max()){
       goal_state_(QS::POSX) = coordinates[0];
