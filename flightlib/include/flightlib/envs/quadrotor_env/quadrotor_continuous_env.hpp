@@ -12,6 +12,13 @@
 
 #include "quadenv_ctl.hpp"
 
+// add includes for gate implementation
+#include "flightlib/eigen-3.4.0/Eigen/Eigen"
+#include "flightlib/bridges/unity_bridge.hpp"
+#include "flightlib/bridges/unity_message_types.hpp"
+#include "flightlib/common/types.hpp"
+#include "flightlib/objects/static_gate.hpp"
+
 
 namespace flightlib {
 
