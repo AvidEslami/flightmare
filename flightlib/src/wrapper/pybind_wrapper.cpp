@@ -10,6 +10,7 @@
 #include "flightlib/envs/quadrotor_env/quadrotor_hover_env.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_continuous_env.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_env_bydata.hpp"
+#include "flightlib/envs/quadrotor_env/quadrotor_angled_env.hpp"
 #include "flightlib/envs/test_env.hpp"
 #include "flightlib/envs/vec_env.hpp"
 
@@ -109,5 +110,28 @@ PYBIND11_MODULE(flightgym, m) {
     // .def("getEpisodeLength", &VecEnv<QuadrotorEnvByData>::getEpisodeLength)
     .def("__repr__", [](const VecEnv<QuadrotorEnvByData>& a) {
       return "RPG Continuous Test Environment";
+    });
+
+  py::class_<VecEnv<QuadrotorAngledEnv>>(m, "QuadrotorAngledEnv_v1")
+    .def(py::init<>())
+    .def(py::init<const std::string&>())
+    .def(py::init<const std::string&, const bool>())
+    .def("reset", &VecEnv<QuadrotorAngledEnv>::reset)
+    .def("reset_range", &VecEnv<QuadrotorAngledEnv>::resetRange)
+    .def("step", &VecEnv<QuadrotorAngledEnv>::step)
+    .def("testStep", &VecEnv<QuadrotorAngledEnv>::testStep)
+    .def("setSeed", &VecEnv<QuadrotorAngledEnv>::setSeed)
+    .def("close", &VecEnv<QuadrotorAngledEnv>::close)
+    .def("isTerminalState", &VecEnv<QuadrotorAngledEnv>::isTerminalState)
+    .def("curriculumUpdate", &VecEnv<QuadrotorAngledEnv>::curriculumUpdate)
+    .def("connectUnity", &VecEnv<QuadrotorAngledEnv>::connectUnity)
+    .def("disconnectUnity", &VecEnv<QuadrotorAngledEnv>::disconnectUnity)
+    .def("getNumOfEnvs", &VecEnv<QuadrotorAngledEnv>::getNumOfEnvs)
+    .def("getObsDim", &VecEnv<QuadrotorAngledEnv>::getObsDim)
+    .def("getActDim", &VecEnv<QuadrotorAngledEnv>::getActDim)
+    .def("getExtraInfoNames", &VecEnv<QuadrotorAngledEnv>::getExtraInfoNames)
+    // .def("getEpisodeLength", &VecEnv<QuadrotorEnv>::getEpisodeLength)
+    .def("__repr__", [](const VecEnv<QuadrotorAngledEnv>& a) {
+      return "RPG Drone Racing Environment";
     });
 }

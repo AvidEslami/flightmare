@@ -18,7 +18,7 @@ from rpg_baselines.ppo.ppo2_test import test_model
 from rpg_baselines.envs import vec_env_wrapper as wrapper
 import rpg_baselines.common.util as U
 #
-from flightgym import QuadrotorEnv_v1
+from flightgym import QuadrotorAngledEnv_v1
 
 
 def configure_random_seed(seed, env=None):
@@ -56,7 +56,7 @@ def main():
     else:
         cfg["env"]["render"] = "no"
 
-    env = wrapper.FlightEnvVec(QuadrotorEnv_v1(
+    env = wrapper.FlightEnvVec(QuadrotorAngledEnv_v1(
         dump(cfg, Dumper=RoundTripDumper), False))
     
     # env = DynamicGate_v0(dump(cfg["env"], Dumper=RoundTripDumper))

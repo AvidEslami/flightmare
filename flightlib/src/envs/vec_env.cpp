@@ -237,5 +237,6 @@ template class VecEnv<QuadrotorEnv>;
 template class VecEnv<QuadrotorHoverEnv>;
 template class VecEnv<QuadrotorContinuousEnv>;
 template class VecEnv<QuadrotorEnvByData>;
+template class VecEnv<QuadrotorAngledEnv>;
 
 }  // namespace flightlib
