@@ -6,10 +6,11 @@ QuadrotorEnvByData::QuadrotorEnvByData()
   : QuadrotorEnvByData(getenv("FLIGHTMARE_PATH") +
                  std::string("/flightlib/configs/quadrotor_env.yaml")) {}
 
-std::string dataPath1 = "/home/avidavid/Downloads/CPC16_Z1 (1).csv";
+std::string dataPath1 = "/home/avidavid/Downloads/CPC16_Z1.csv";
 std::string dataPath2 = "/home/avidavid/Downloads/CPC25_Z1 (1).csv";
 std::string dataPath3 = "/home/avidavid/Downloads/CPC33_Z1 (1).csv";
-std::string dataPath4 = "/home/joshua/Downloads/random_states.csv";
+std::string dataPath4 = "/home/avidavid/Downloads/random_states.csv";
+std::string dataPath5 = "/home/avidavid/Downloads/random_states (1).csv";
 
 
 // Store second last state and use it for computing bell curve rewards at terminal state
@@ -39,7 +40,7 @@ QuadrotorEnvByData::QuadrotorEnvByData(const std::string &cfg_path)
   quadrotor_ptr_->updateDynamics(dynamics);
 
   // define a bounding box
-  world_box_ << -30, 30, -30, 30, -30, 30;
+  world_box_ << -50, 50, -50, 50, -50, 50;
   if (!quadrotor_ptr_->setWorldBox(world_box_)) {
     logger_.error("cannot set wolrd box");
   };
@@ -80,17 +81,20 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
     // Pick a random number to choose which data file to use
     // std::uniform_int_distribution<int> data_file_dist(1, 2);
     // int data_file_choice = data_file_dist(random_gen_);
-    int data_file_choice = 1;
+    int data_file_choice = 5;
     std::string dataPath;
 
     if (point_to_point) {
-      dataPath = dataPath4;
+      dataPath = dataPath5;
     }
     else if (data_file_choice == 1){
       dataPath = dataPath1;
     }
     else if (data_file_choice == 2){
       dataPath = dataPath2;
+    }
+    else if (data_file_choice == 5){
+      dataPath = dataPath5;
     }
     else{
       dataPath = dataPath3;
@@ -133,7 +137,7 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
         initial_time = std::stof(data[0]);
         quad_state_.x(QS::POSX) = std::stof(data[1]);
         quad_state_.x(QS::POSY) = std::stof(data[2]);
-        quad_state_.x(QS::POSZ) = std::stof(data[3]);
+        quad_state_.x(QS::POSZ) = std::stof(data[3])+10;
         quad_state_.x(QS::ATTW) = std::stof(data[4]);
         quad_state_.x(QS::ATTX) = std::stof(data[5]);
         quad_state_.x(QS::ATTY) = std::stof(data[6]);
@@ -141,20 +145,20 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
         quad_state_.x(QS::VELX) = std::stof(data[8]);
         quad_state_.x(QS::VELY) = std::stof(data[9]);
         quad_state_.x(QS::VELZ) = std::stof(data[10]);
-        quad_state_.x(QS::OMEX) = std::stof(data[11]);
-        quad_state_.x(QS::OMEY) = std::stof(data[12]);
-        quad_state_.x(QS::OMEZ) = std::stof(data[13]);
+        // quad_state_.x(QS::OMEX) = std::stof(data[11]);
+        // quad_state_.x(QS::OMEY) = std::stof(data[12]);
+        // quad_state_.x(QS::OMEZ) = std::stof(data[13]);
         // quad_state_.x(QS::ACCX) = std::stof(data[14]);
         // quad_state_.x(QS::ACCY) = std::stof(data[15]);
         // quad_state_.x(QS::ACCZ) = std::stof(data[16]);
 
         // Add a small random noise to the initial state
-        quad_state_.x(QS::POSX) += 0.4*uniform_dist_(random_gen_);
-        quad_state_.x(QS::POSY) += 0.4*uniform_dist_(random_gen_);
-        quad_state_.x(QS::POSZ) += 0.4*uniform_dist_(random_gen_);
-        quad_state_.x(QS::VELX) += 0.4*uniform_dist_(random_gen_);
-        quad_state_.x(QS::VELY) += 0.4*uniform_dist_(random_gen_);
-        quad_state_.x(QS::VELZ) += 0.4*uniform_dist_(random_gen_);
+        quad_state_.x(QS::POSX) += 0.01*uniform_dist_(random_gen_);
+        quad_state_.x(QS::POSY) += 0.01*uniform_dist_(random_gen_);
+        quad_state_.x(QS::POSZ) += 0.01*uniform_dist_(random_gen_);
+        quad_state_.x(QS::VELX) += 0.01*uniform_dist_(random_gen_);
+        quad_state_.x(QS::VELY) += 0.01*uniform_dist_(random_gen_);
+        quad_state_.x(QS::VELZ) += 0.01*uniform_dist_(random_gen_);
         
         break;
       }
@@ -192,7 +196,7 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
         // printf("Next time: %f\n", std::stof(data[0]));
         goal_state_(QS::POSX) = std::stof(data[1]);
         goal_state_(QS::POSY) = std::stof(data[2]);
-        goal_state_(QS::POSZ) = std::stof(data[3]);
+        goal_state_(QS::POSZ) = std::stof(data[3])+10;
         goal_state_(QS::ATTW) = std::stof(data[4]);
         goal_state_(QS::ATTX) = std::stof(data[5]);
         goal_state_(QS::ATTY) = std::stof(data[6]);
@@ -200,9 +204,9 @@ bool QuadrotorEnvByData::reset(Ref<Vector<>> obs, const bool random) {
         goal_state_(QS::VELX) = std::stof(data[8]);
         goal_state_(QS::VELY) = std::stof(data[9]);
         goal_state_(QS::VELZ) = std::stof(data[10]);
-        goal_state_(QS::OMEX) = std::stof(data[11]);
-        goal_state_(QS::OMEY) = std::stof(data[12]);
-        goal_state_(QS::OMEZ) = std::stof(data[13]);
+        // goal_state_(QS::OMEX) = std::stof(data[11]);
+        // goal_state_(QS::OMEY) = std::stof(data[12]);
+        // goal_state_(QS::OMEZ) = std::stof(data[13]);
 
         // printf("Next goal state: %f, %f, %f\n", goal_state_(QS::POSX), goal_state_(QS::POSY), goal_state_(QS::POSZ));
         break;
@@ -364,13 +368,13 @@ Scalar QuadrotorEnvByData::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
                        .squaredNorm() * 0.1;
 
   // - control action penalty
-  Scalar act_reward = act_coeff_ * act.cast<Scalar>().norm() * 0.5;
+  Scalar act_reward = act_coeff_ * act.cast<Scalar>().norm() * 0.05;
 
   Scalar total_reward =
     pos_reward + act_reward + ori_reward + ang_vel_reward + lin_vel_reward;
 
   // survival reward
-  total_reward += 0.04;
+  total_reward += 0.5;
 
   return total_reward;
 }
@@ -378,7 +382,8 @@ Scalar QuadrotorEnvByData::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
 bool QuadrotorEnvByData::isTerminalState(Scalar &reward) {
   if ((((quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) -
        goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.02))) {
+        .squaredNorm() < 0.01))) {
+        return false;
     // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
     // double dist = (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).squaredNorm();
     // double power = -0.5*std::pow(dist/0.5, 2);
@@ -396,12 +401,15 @@ bool QuadrotorEnvByData::isTerminalState(Scalar &reward) {
     // Use a bell curve to reward the drone for having a terminal orientation that is very close to the desired orientation
     // MAXIMUM REWARD FROM ORIENTATION: 40.0, MINIMUM REWARD FROM ORIENTATION: 0.0
     double ori_dist = (quad_state_.x.segment<quadenv::kNOri>(quadenv::kOri) - goal_state_.segment<quadenv::kNOri>(quadenv::kOri)).squaredNorm();
-    double ori_power = -0.5*std::pow(ori_dist/0.5, 2);
+    double ori_power = -0.5*std::pow(ori_dist/0.75, 2);
     reward += 50.0*std::exp(ori_power);
+    // also print the distances
+    std::cout << "Velocity diff: " << vel_dist << std::endl;
+    std::cout << "Orientation diff: " << ori_dist << std::endl;
     std::cout << "Terminal Reward: " << reward << std::endl;
     return true;
   }
-  else if ((quad_state_.x(QS::POSZ) <= -10.0)) {
+  else if ((quad_state_.x(QS::POSZ) <= -30.0)) {
     reward = -50.5;
     return true;
   }

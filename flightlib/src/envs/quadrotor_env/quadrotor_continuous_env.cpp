@@ -508,7 +508,7 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     //     goal_state_(QS::POSZ) = 7;
     //   }
     // }
-    std::string csv_path = "/home/avidavid/Downloads/CPC16_Z1 (1).csv";
+    std::string csv_path = "/home/avidavid/Downloads/CPC16_Z1.csv";
     std::vector<std::string> track_data;
     std::vector<double> coordinates;
     loadCSV(track_data, csv_path);
