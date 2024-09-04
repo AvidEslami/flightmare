@@ -236,6 +236,7 @@ void VecEnv<EnvBase>::curriculumUpdate(void) {
 template class VecEnv<QuadrotorEnv>;
 template class VecEnv<QuadrotorHoverEnv>;
 template class VecEnv<QuadrotorContinuousEnv>;
+template class VecEnv<QuadrotorEnvByDataTraj>;
 template class VecEnv<QuadrotorEnvByData>;
 
 }  // namespace flightlib

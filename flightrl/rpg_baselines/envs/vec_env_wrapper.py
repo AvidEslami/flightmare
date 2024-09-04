@@ -34,7 +34,7 @@ class FlightEnvVec(VecEnv):
     def step(self, action):
         self.wrapper.step(action, self._observation,
                           self._reward, self._done, self._extraInfo)
-
+        # print("_reward: ", self._reward)
         if len(self._extraInfoNames) is not 0:
             info = [{'extra_info': {
                 self._extraInfoNames[j]: self._extraInfo[i, j] for j in range(0, len(self._extraInfoNames))

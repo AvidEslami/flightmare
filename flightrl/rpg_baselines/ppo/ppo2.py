@@ -277,6 +277,11 @@ class PPO2(ActorCriticRLModel):
         :param cliprange_vf: (float) Clipping factor for the value function
         """
         advs = returns - values
+        # make sure advs is not nan
+        print(f"advs: {advs}")
+        print(f"returns: {returns}")
+        print(f"values: {values}")
+        assert not np.isnan(advs).any()
         advs = (advs - advs.mean()) / (advs.std() + 1e-8)
         td_map = {self.train_model.obs_ph: obs, self.action_ph: actions,
                   self.advs_ph: advs, self.rewards_ph: returns,
@@ -350,6 +355,8 @@ class PPO2(ActorCriticRLModel):
                     t_start = time.time()
                     # Unpack
                     obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward = runner.run()
+                    # Ensure returns are never nan
+                    assert not np.isnan(returns).any()
                     # # add by Yunlong
                     t_now = time.time()
                     fps = int(self.n_batch / (t_now - t_start))
@@ -367,6 +374,7 @@ class PPO2(ActorCriticRLModel):
                                 end = start + batch_size
                                 mbinds = inds[start:end]
                                 slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
+                                print("slices")
                                 mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, writer=writer,
                                                                     update=timestep, cliprange_vf=cliprange_vf_now))
                     else:  # recurrent version
@@ -385,6 +393,7 @@ class PPO2(ActorCriticRLModel):
                                 mb_flat_inds = flat_indices[mb_env_inds].ravel()
                                 slices = (arr[mb_flat_inds] for arr in (obs, returns, masks, actions, values, neglogpacs))
                                 mb_states = states[mb_env_inds]
+                                print("this does not run")
                                 mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, update=timestep,
                                                                     writer=writer, states=mb_states,
                                                                     cliprange_vf=cliprange_vf_now))
@@ -520,6 +529,9 @@ class Runner(AbstractEnvRunner):
                 if maybe_ep_info is not None:
                     ep_infos.append(maybe_ep_info)
             mb_rewards.append(rewards)
+            if False:
+                print(f"rewards: {rewards}")
+            assert not np.isnan(rewards).any()
         
         # batch of steps to batch of rollouts
         mb_obs = np.asarray(mb_obs, dtype=self.obs.dtype)
@@ -542,8 +554,21 @@ class Runner(AbstractEnvRunner):
                 nextnonterminal = 1.0 - mb_dones[step + 1]
                 nextvalues = mb_values[step + 1]
             delta = mb_rewards[step] + self.gamma * nextvalues * nextnonterminal - mb_values[step]
+            if True:
+                print(f"mb_rewards[step]: {mb_rewards[step]}")
             mb_advs[step] = last_gae_lam = delta + self.gamma * self.lam * nextnonterminal * last_gae_lam
+            if False:
+                print(f"delta: {delta}")
+                print(f"self.gamma: {self.gamma}")
+                print(f"self.lam: {self.lam}")
+                print(f"nextnonterminal: {nextnonterminal}")
+                print(f"last_gae_lam: {last_gae_lam}")
         mb_returns = mb_advs + mb_values
+
+        if False:
+            print(f"mb_advs: {mb_advs}")
+            print(f"mb_values: {mb_values}")
+            print(f"mb_returns: {mb_returns}")
 
         mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward = \
             map(swap_and_flatten, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, true_reward))
@@ -552,7 +577,8 @@ class Runner(AbstractEnvRunner):
 
         for info in infos:
             ep_infos.append(info.get('episode'))
-
+        # ensure returns is never nan
+        assert not np.isnan(mb_returns).any()
         return mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_states, ep_infos, true_reward
 
 

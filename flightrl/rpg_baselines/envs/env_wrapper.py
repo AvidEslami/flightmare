@@ -6,6 +6,7 @@ import time
 
 class EnvWrapper(gym.Env):
     def __init__(self, env):
+        print("INITIALIZING ENVWRAPPER")
         self.env = env
         self.env.init()
         self.num_obs = env.getObsDim()
@@ -33,6 +34,13 @@ class EnvWrapper(gym.Env):
 
     def step(self, action):
         self.reward = self.env.step(action, self.observation)
+        # assert that self.reward is a valid number, if it is not, print the reward
+        if not np.isfinite(self.reward):
+            print("reward is not finite: ", self.reward)
+            # exit
+            assert False
+        print("REWARD: ", self.reward)
+        assert False
         terminal_reward = 0.0
         self.done = self.env.isTerminalState(terminal_reward)
         return self.observation.copy(), self.reward, \

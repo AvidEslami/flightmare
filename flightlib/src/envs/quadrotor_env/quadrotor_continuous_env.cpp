@@ -15,14 +15,14 @@ int flightpath = 3;
 // 1: 9 Meter
 // 2: 15 Meter
 
-int line_counter = 8;
-int eff_line_counter = 15;
+int line_counter = 7;
+int eff_line_counter = 7;
 
 bool toced_continuous = false;
 
 bool completed_lap = false;
 
-bool assist = true;
+bool assist = false;
 
 QuadrotorContinuousEnv::QuadrotorContinuousEnv()
   : QuadrotorContinuousEnv(getenv("FLIGHTMARE_PATH") +
@@ -509,6 +509,7 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     //   }
     // }
     std::string csv_path = "/home/avidavid/Downloads/CPC16_Z1.csv";
+    // std::string csv_path = "/home/avidavid/Downloads/0.016.csv";
     std::vector<std::string> track_data;
     std::vector<double> coordinates;
     loadCSV(track_data, csv_path);

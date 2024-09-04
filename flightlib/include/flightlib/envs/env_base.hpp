@@ -54,7 +54,7 @@ class EnvBase {
 
   // control time step
   Scalar sim_dt_{0.02};
-  Scalar max_t_{5.0};
+  Scalar max_t_{2.0};
 
   // random variable generator
   std::normal_distribution<Scalar> norm_dist_{0.0, 1.0};

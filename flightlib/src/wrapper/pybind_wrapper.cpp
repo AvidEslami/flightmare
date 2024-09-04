@@ -9,6 +9,7 @@
 #include "flightlib/envs/quadrotor_env/quadrotor_env.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_hover_env.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_continuous_env.hpp"
+#include "flightlib/envs/quadrotor_env/quadrotor_env_bydata_traj.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_env_bydata.hpp"
 #include "flightlib/envs/test_env.hpp"
 #include "flightlib/envs/vec_env.hpp"
@@ -86,6 +87,28 @@ PYBIND11_MODULE(flightgym, m) {
     .def("getExtraInfoNames", &VecEnv<QuadrotorContinuousEnv>::getExtraInfoNames)
     // .def("getEpisodeLength", &VecEnv<QuadrotorContinuousEnv>::getEpisodeLength)
     .def("__repr__", [](const VecEnv<QuadrotorContinuousEnv>& a) {
+      return "RPG Continuous Test Environment";
+    });
+
+  py::class_<VecEnv<QuadrotorEnvByDataTraj>>(m, "QuadrotorEnv_Bydata_Traj")
+    .def(py::init<>())
+    .def(py::init<const std::string&>())
+    .def(py::init<const std::string&, const bool>())
+    .def("reset", &VecEnv<QuadrotorEnvByDataTraj>::reset)
+    .def("step", &VecEnv<QuadrotorEnvByDataTraj>::step)
+    .def("testStep", &VecEnv<QuadrotorEnvByDataTraj>::testStep)
+    .def("setSeed", &VecEnv<QuadrotorEnvByDataTraj>::setSeed)
+    .def("close", &VecEnv<QuadrotorEnvByDataTraj>::close)
+    .def("isTerminalState", &VecEnv<QuadrotorEnvByDataTraj>::isTerminalState)
+    .def("curriculumUpdate", &VecEnv<QuadrotorEnvByDataTraj>::curriculumUpdate)
+    .def("connectUnity", &VecEnv<QuadrotorEnvByDataTraj>::connectUnity)
+    .def("disconnectUnity", &VecEnv<QuadrotorEnvByDataTraj>::disconnectUnity)
+    .def("getNumOfEnvs", &VecEnv<QuadrotorEnvByDataTraj>::getNumOfEnvs)
+    .def("getObsDim", &VecEnv<QuadrotorEnvByDataTraj>::getObsDim)
+    .def("getActDim", &VecEnv<QuadrotorEnvByDataTraj>::getActDim)
+    .def("getExtraInfoNames", &VecEnv<QuadrotorEnvByDataTraj>::getExtraInfoNames)
+    // .def("getEpisodeLength", &VecEnv<QuadrotorEnvByDataTraj>::getEpisodeLength)
+    .def("__repr__", [](const VecEnv<QuadrotorEnvByDataTraj>& a) {
       return "RPG Continuous Test Environment";
     });
 
