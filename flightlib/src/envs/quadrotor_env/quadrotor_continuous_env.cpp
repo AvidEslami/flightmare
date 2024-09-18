@@ -15,14 +15,14 @@ int flightpath = 3;
 // 1: 9 Meter
 // 2: 15 Meter
 
-int line_counter = 7;
-int eff_line_counter = 7;
+int line_counter = 20;
+int eff_line_counter = 20;
 
 bool toced_continuous = false;
 
 bool completed_lap = false;
 
-bool assist = false;
+bool assist = true;
 
 QuadrotorContinuousEnv::QuadrotorContinuousEnv()
   : QuadrotorContinuousEnv(getenv("FLIGHTMARE_PATH") +
@@ -433,7 +433,7 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
   // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
   if (((quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) -
        goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.045)) { // Temporarily increased to 0.1
+        .squaredNorm() < 0.6)) { // Temporarily increased to 0.1
     reward = 10.0;
     myTimer_continuous.toc();
     time_elapsed_continuous = myTimer_continuous.last();
@@ -508,8 +508,8 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     //     goal_state_(QS::POSZ) = 7;
     //   }
     // }
-    std::string csv_path = "/home/avidavid/Downloads/CPC16_Z1.csv";
-    // std::string csv_path = "/home/avidavid/Downloads/0.016.csv";
+    // std::string csv_path = "/home/avidavid/Downloads/CPC16_Z1.csv";
+    std::string csv_path = "/home/avidavid/Downloads/0.016.csv";
     std::vector<std::string> track_data;
     std::vector<double> coordinates;
     loadCSV(track_data, csv_path);

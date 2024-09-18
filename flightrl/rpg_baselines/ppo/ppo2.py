@@ -278,9 +278,9 @@ class PPO2(ActorCriticRLModel):
         """
         advs = returns - values
         # make sure advs is not nan
-        print(f"advs: {advs}")
-        print(f"returns: {returns}")
-        print(f"values: {values}")
+        # print(f"advs: {advs}")
+        # print(f"returns: {returns}")
+        # print(f"values: {values}")
         assert not np.isnan(advs).any()
         advs = (advs - advs.mean()) / (advs.std() + 1e-8)
         td_map = {self.train_model.obs_ph: obs, self.action_ph: actions,
@@ -374,7 +374,7 @@ class PPO2(ActorCriticRLModel):
                                 end = start + batch_size
                                 mbinds = inds[start:end]
                                 slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs))
-                                print("slices")
+                                # print("slices")
                                 mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, writer=writer,
                                                                     update=timestep, cliprange_vf=cliprange_vf_now))
                     else:  # recurrent version
@@ -554,7 +554,7 @@ class Runner(AbstractEnvRunner):
                 nextnonterminal = 1.0 - mb_dones[step + 1]
                 nextvalues = mb_values[step + 1]
             delta = mb_rewards[step] + self.gamma * nextvalues * nextnonterminal - mb_values[step]
-            if True:
+            if False:
                 print(f"mb_rewards[step]: {mb_rewards[step]}")
             mb_advs[step] = last_gae_lam = delta + self.gamma * self.lam * nextnonterminal * last_gae_lam
             if False:

@@ -12,6 +12,7 @@ std::string trajPath3 = "/home/avidavid/Downloads/CPC33_Z1 (1).csv";
 std::string trajPath4 = "/home/avidavid/Downloads/random_states.csv";
 std::string trajPath5 = "/home/avidavid/Downloads/random_states (1).csv";
 std::string trajPath6 = "/home/avidavid/Downloads/0.016.csv";
+std::string trajPath7 = "/home/avidavid/Downloads/data01.csv";
 
 
 // Store second last state and use it for computing bell curve rewards at terminal state
@@ -84,7 +85,7 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
     // Pick a random number to choose which data file to use
     // std::uniform_int_distribution<int> data_file_dist(1, 2);
     // int data_file_choice = data_file_dist(random_gen_);
-    int data_file_choice = 6;
+    int data_file_choice = 7;
     std::string trajPath;
 
     if (data_file_choice == 1){
@@ -98,6 +99,9 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
     }
     else if (data_file_choice == 6) {
       trajPath = trajPath6;
+    }
+    else if (data_file_choice == 7) {
+      trajPath = trajPath7;
     }
     else{
       trajPath = trajPath3;
@@ -142,9 +146,9 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
         quad_state_.x(QS::VELY) = std::stof(data[9]);
         quad_state_.x(QS::VELZ) = std::stof(data[10]);
 
-        quad_state_.x(QS::OMEX) = std::stof(data[11]);
-        quad_state_.x(QS::OMEY) = std::stof(data[12]);
-        quad_state_.x(QS::OMEZ) = std::stof(data[13]);
+        // quad_state_.x(QS::OMEX) = std::stof(data[11]);
+        // quad_state_.x(QS::OMEY) = std::stof(data[12]);
+        // quad_state_.x(QS::OMEZ) = std::stof(data[13]);
         // quad_state_.x(QS::ACCX) = std::stof(data[14]);
         // quad_state_.x(QS::ACCY) = std::stof(data[15]);
         // quad_state_.x(QS::ACCZ) = std::stof(data[16]);
@@ -182,9 +186,9 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
         goal_state_(QS::VELY) = std::stof(data[9]);
         goal_state_(QS::VELZ) = std::stof(data[10]);
 
-        goal_state_(QS::OMEX) = std::stof(data[11]);
-        goal_state_(QS::OMEY) = std::stof(data[12]);
-        goal_state_(QS::OMEZ) = std::stof(data[13]);
+        // goal_state_(QS::OMEX) = std::stof(data[11]);
+        // goal_state_(QS::OMEY) = std::stof(data[12]);
+        // goal_state_(QS::OMEZ) = std::stof(data[13]);
 
         break;
       }
@@ -371,7 +375,7 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
   // print length of traj_
   // std::cout << "Trajectory Length: " << traj_.size() << std::endl;
   int trajectory_length = traj_.size();
-  if (mid_train_step_ < trajectory_length-2){
+  if ((mid_train_step_*2)-1 < trajectory_length){
     int desired_pose_index = mid_train_step_*2 - 1;
     // Print current pose and desired pose
     // std::cout << "Current Pose: " << quad_state_.x.segment<10>(0).transpose() << std::endl;
@@ -383,7 +387,16 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     //   // std::cout << (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ << std::endl;
     //   // total_reward += 0.01;
     // }
-    for (int i = 0; i < 10; i++){
+    for (int i = 0; i < 3; i++){
+      // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
+      total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /10;
+      if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /10)){
+        std::cout << "NAN" << std::endl;
+      }
+      // std::cout << (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ << std::endl;
+      // total_reward += 0.01;
+    }
+    for (int i = 7; i < 10; i++){
       // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
       total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /10;
       if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /10)){
@@ -436,7 +449,7 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
   //                      .squaredNorm();
   //   // survival reward
   //   total_reward += 0.3 + pos_reward + ori_reward + lin_vel_reward + ang_vel_reward;
-    total_reward += 0.5;
+    total_reward += 0.01;
     // Check if total_reward is NaN
     if (std::isnan(static_cast<double>(total_reward))){
       total_reward = 0;
@@ -446,7 +459,7 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
       total_reward = 0;
       std::cout << "Total Reward is Inf" << std::endl;
     }
-    std::cout << "Total Reward: " << total_reward << std::endl;
+    // std::cout << "Total Reward: " << total_reward << std::endl;
     return total_reward;
   }
   else {
@@ -456,43 +469,49 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
 }
 
 bool QuadrotorEnvByDataTraj::isTerminalState(Scalar &reward) {
-  if ((((quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) -
-       goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.1))) {
-        // return false;
-    // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
-    // double dist = (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).squaredNorm();
-    // double power = -0.5*std::pow(dist/0.5, 2);
-    // reward = 10.0*std::exp(power);
-    reward = 30.0;
-    // reward = 0;
+  // if ((((quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) -
+  //      goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
+  //       .squaredNorm() < 0.1))) {
+  //       // return false;
+  //   // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
+  //   // double dist = (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).squaredNorm();
+  //   // double power = -0.5*std::pow(dist/0.5, 2);
+  //   // reward = 10.0*std::exp(power);
+  //   reward = 30.0;
+  //   // reward = 0;
 
-    // // Use a bell curve to reward the drone for having a velocity that is very close to the desired velocity
-    // // MAXIMUM REWARD FROM VELOCITY: 40.0, MINIMUM REWARD FROM VELOCITY: 0.0
-    double vel_dist = (quad_state_.x.segment<quadenv::kNLinVel>(quadenv::kLinVel) - goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel)).squaredNorm();
-    double vel_power = -0.5*std::pow(vel_dist/0.5, 2);
-    // reward += 40.0*std::exp(vel_power);
+  //   // // Use a bell curve to reward the drone for having a velocity that is very close to the desired velocity
+  //   // // MAXIMUM REWARD FROM VELOCITY: 40.0, MINIMUM REWARD FROM VELOCITY: 0.0
+  //   double vel_dist = (quad_state_.x.segment<quadenv::kNLinVel>(quadenv::kLinVel) - goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel)).squaredNorm();
+  //   double vel_power = -0.5*std::pow(vel_dist/0.5, 2);
+  //   // reward += 40.0*std::exp(vel_power);
 
 
-    // Use a bell curve to reward the drone for having a terminal orientation that is very close to the desired orientation
-    // MAXIMUM REWARD FROM ORIENTATION: 40.0, MINIMUM REWARD FROM ORIENTATION: 0.0
-    double ori_dist = (quad_state_.x.segment<quadenv::kNOri>(quadenv::kOri) - goal_state_.segment<quadenv::kNOri>(quadenv::kOri)).squaredNorm();
-    double ori_power = -0.5*std::pow(ori_dist/0.5, 2);
-    // reward += 40.0*std::exp(ori_power);
-    // also print the distances
-    // Display Drone's velocity and goal velocity
-    // std::cout << "Drone's Velocity: " << quad_state_.x.segment<quadenv::kNLinVel>(quadenv::kLinVel).transpose() << std::endl;
-    // std::cout << "Goal Velocity: " << goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel).transpose() << std::endl;
-    std::cout << "Orientation diff: " << ori_dist << std::endl;
-    // Display Velocity and Orientation Rewards
-    // std::cout << "Velocity Reward: " << 50.0*std::exp(vel_power) << std::endl;
-    std::cout << "Velocity diff: " << vel_dist << std::endl;
-    // std::cout << "Orientation Reward: " << 50.0*std::exp(ori_power) << std::endl;
-    // std::cout << "Terminal Reward: " << reward << std::endl;
-    return true;
-  }
-  else if ((quad_state_.x(QS::POSZ) <= -10.0)) {
-    reward = -10.5;
+  //   // Use a bell curve to reward the drone for having a terminal orientation that is very close to the desired orientation
+  //   // MAXIMUM REWARD FROM ORIENTATION: 40.0, MINIMUM REWARD FROM ORIENTATION: 0.0
+  //   double ori_dist = (quad_state_.x.segment<quadenv::kNOri>(quadenv::kOri) - goal_state_.segment<quadenv::kNOri>(quadenv::kOri)).squaredNorm();
+  //   double ori_power = -0.5*std::pow(ori_dist/0.5, 2);
+  //   // reward += 40.0*std::exp(ori_power);
+  //   // also print the distances
+  //   // Display Drone's velocity and goal velocity
+  //   // std::cout << "Drone's Velocity: " << quad_state_.x.segment<quadenv::kNLinVel>(quadenv::kLinVel).transpose() << std::endl;
+  //   // std::cout << "Goal Velocity: " << goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel).transpose() << std::endl;
+  //   std::cout << "Orientation diff: " << ori_dist << std::endl;
+  //   // Display Velocity and Orientation Rewards
+  //   // std::cout << "Velocity Reward: " << 50.0*std::exp(vel_power) << std::endl;
+  //   std::cout << "Velocity diff: " << vel_dist << std::endl;
+  //   // std::cout << "Orientation Reward: " << 50.0*std::exp(ori_power) << std::endl;
+  //   // std::cout << "Terminal Reward: " << reward << std::endl;
+  //   return true;
+  // }
+  // else if ((quad_state_.x(QS::POSZ) <= -10.0)) {
+  //   reward = -10.5;
+  //   return true;
+  // }
+  // Once mid__
+  int trajectory_length = traj_.size();
+  if ((mid_train_step_*2)-1 >= trajectory_length) {
+    reward = 5;
     return true;
   }
   else {
