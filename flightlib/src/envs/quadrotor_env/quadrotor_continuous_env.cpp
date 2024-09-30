@@ -15,8 +15,8 @@ int flightpath = 3;
 // 1: 9 Meter
 // 2: 15 Meter
 
-int line_counter = 20;
-int eff_line_counter = 20;
+int line_counter = 100;
+int eff_line_counter = 100;
 
 bool toced_continuous = false;
 
@@ -120,25 +120,39 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
 
       quad_state_.setZero();
       // quad_state_.x(QS::POSZ) = 7.0;
-      quad_state_.x(QS::POSX) = -4.99;
-      quad_state_.x(QS::POSY) = 4.49;
-      quad_state_.x(QS::POSZ) = 1.20+5;
-      quad_state_.x(QS::ATTW) = 0.99;
-      quad_state_.x(QS::ATTX) = 0.03; 
-      quad_state_.x(QS::ATTY) = 0.008;
-      quad_state_.x(QS::ATTZ) = 0.001;
-      quad_state_.x(QS::VELX) = 0.002;
-      quad_state_.x(QS::VELY) = -0.01;
-      quad_state_.x(QS::VELZ) = 0.12;
-      quad_state_.x(QS::OMEX) = 4.49;
-      quad_state_.x(QS::OMEY) = 1.04;
-      quad_state_.x(QS::OMEZ) = 0.2;
-      quad_state_.x(QS::ACCX) = 0.05;
-      quad_state_.x(QS::ACCY) = -0.36;
-      quad_state_.x(QS::ACCZ) = 3.79;
-      quad_state_.x(QS::TAUX) = 138.4;
-      quad_state_.x(QS::TAUY) = 32.0;
-      quad_state_.x(QS::TAUZ) = 6.24;
+      if (false) {
+        quad_state_.x(QS::POSX) = -4.99;
+        quad_state_.x(QS::POSY) = 4.49;
+        quad_state_.x(QS::POSZ) = 1.20+5;
+        quad_state_.x(QS::ATTW) = 0.99;
+        quad_state_.x(QS::ATTX) = 0.03; 
+        quad_state_.x(QS::ATTY) = 0.008;
+        quad_state_.x(QS::ATTZ) = 0.001;
+        quad_state_.x(QS::VELX) = 0.002;
+        quad_state_.x(QS::VELY) = -0.01;
+        quad_state_.x(QS::VELZ) = 0.12;
+        quad_state_.x(QS::OMEX) = 4.49;
+        quad_state_.x(QS::OMEY) = 1.04;
+        quad_state_.x(QS::OMEZ) = 0.2;
+        quad_state_.x(QS::ACCX) = 0.05;
+        quad_state_.x(QS::ACCY) = -0.36;
+        quad_state_.x(QS::ACCZ) = 3.79;
+        quad_state_.x(QS::TAUX) = 138.4;
+        quad_state_.x(QS::TAUY) = 32.0;
+        quad_state_.x(QS::TAUZ) = 6.24;
+      }
+      else {
+        quad_state_.x(QS::POSX) = 0.0659841;
+        quad_state_.x(QS::POSY) = 9.99912;
+        quad_state_.x(QS::POSZ) = 2.5+5;
+        quad_state_.x(QS::ATTW) = -0.175013;
+        quad_state_.x(QS::ATTX) = 0; 
+        quad_state_.x(QS::ATTY) = 1;
+        quad_state_.x(QS::ATTZ) = 6.59803;
+        quad_state_.x(QS::VELX) = 6.6;
+        quad_state_.x(QS::VELY) = -0.088;
+        quad_state_.x(QS::VELZ) = 0;
+      }
       if (flightpath == 0) {
         goal_state_(QS::POSX) = 5;
       }
@@ -168,19 +182,33 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
 
       // goal_state_(QS::POSY) = 0.0;
       // goal_state_(QS::POSZ) = 7.0;
-      goal_state_(QS::POSX) = -4.99;
-      goal_state_(QS::POSY) = 4.49;
-      goal_state_(QS::POSZ) = 1.20+5;
-      goal_state_(QS::ATTW) = 0.99;
-      goal_state_(QS::ATTX) = 0.03; 
-      goal_state_(QS::ATTY) = 0.008;
-      goal_state_(QS::ATTZ) = 0.001;
-      goal_state_(QS::VELX) = 0.002;
-      goal_state_(QS::VELY) = -0.01;
-      goal_state_(QS::VELZ) = 0.12;
-      goal_state_(QS::OMEX) = 4.49;
-      goal_state_(QS::OMEY) = 1.04;
-      goal_state_(QS::OMEZ) = 0.2;
+      if (false) {
+        goal_state_(QS::POSX) = -4.99;
+        goal_state_(QS::POSY) = 4.49;
+        goal_state_(QS::POSZ) = 1.20+5;
+        goal_state_(QS::ATTW) = 0.99;
+        goal_state_(QS::ATTX) = 0.03; 
+        goal_state_(QS::ATTY) = 0.008;
+        goal_state_(QS::ATTZ) = 0.001;
+        goal_state_(QS::VELX) = 0.002;
+        goal_state_(QS::VELY) = -0.01;
+        goal_state_(QS::VELZ) = 0.12;
+        goal_state_(QS::OMEX) = 4.49;
+        goal_state_(QS::OMEY) = 1.04;
+        goal_state_(QS::OMEZ) = 0.2;
+      }
+      else {
+        goal_state_(QS::POSX) = 0.526912;
+        goal_state_(QS::POSY) = 9.94405;
+        goal_state_(QS::POSZ) = 2.5+5;
+        goal_state_(QS::ATTW) = -1.39747;
+        goal_state_(QS::ATTX) = 0; 
+        goal_state_(QS::ATTY) = 1;
+        goal_state_(QS::ATTZ) = 6.56202;
+        goal_state_(QS::VELX) = 6.5664;
+        goal_state_(QS::VELY) = -1.31;
+        goal_state_(QS::VELZ) = 0;
+      }
       // goal_state_(QS::ACCX) = 0.05;
       // goal_state_(QS::ACCY) = -0.36;
       // goal_state_(QS::ACCZ) = 3.79;
@@ -392,7 +420,7 @@ std::vector<double> setFlightPath(int flight_path, int& waypoint_num_continuous,
       }
       std::string line = csvFile[line_count];
       std::stringstream line_stream(line);
-      for(int i = 0; i < 14; i++){
+      for(int i = 0; i < 10; i++){
         std::string data;
         std::getline(line_stream, data, ',');
         if(i == 0){
@@ -509,7 +537,7 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     //   }
     // }
     // std::string csv_path = "/home/avidavid/Downloads/CPC16_Z1.csv";
-    std::string csv_path = "/home/avidavid/Downloads/0.016.csv";
+    std::string csv_path = "/home/avidavid/Downloads/data01.csv";
     std::vector<std::string> track_data;
     std::vector<double> coordinates;
     loadCSV(track_data, csv_path);
@@ -531,9 +559,9 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
       quad_state_.x(QS::VELX) = goal_state_(QS::VELX);
       quad_state_.x(QS::VELY) = goal_state_(QS::VELY);
       quad_state_.x(QS::VELZ) = goal_state_(QS::VELZ);
-      quad_state_.x(QS::OMEX) = goal_state_(QS::OMEX);
-      quad_state_.x(QS::OMEY) = goal_state_(QS::OMEY);
-      quad_state_.x(QS::OMEZ) = goal_state_(QS::OMEZ);
+      // quad_state_.x(QS::OMEX) = goal_state_(QS::OMEX);
+      // quad_state_.x(QS::OMEY) = goal_state_(QS::OMEY);
+      // quad_state_.x(QS::OMEZ) = goal_state_(QS::OMEZ);
       // quad_state_.x(QS::ACCX) = goal_state_(QS::ACCX);
       // quad_state_.x(QS::ACCY) = goal_state_(QS::ACCY);
       // quad_state_.x(QS::ACCZ) = goal_state_(QS::ACCZ);
@@ -573,15 +601,15 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     if(coordinates[9] != std::numeric_limits<double>::max()){
       goal_state_(QS::VELZ) = coordinates[9];
     }
-    if(coordinates[10] != std::numeric_limits<double>::max()){
-      goal_state_(QS::OMEX) = coordinates[10];
-    }
-    if(coordinates[11] != std::numeric_limits<double>::max()){
-      goal_state_(QS::OMEY) = coordinates[11];
-    }
-    if(coordinates[12] != std::numeric_limits<double>::max()){
-      goal_state_(QS::OMEZ) = coordinates[12];
-    }
+    // if(coordinates[10] != std::numeric_limits<double>::max()){
+    //   goal_state_(QS::OMEX) = coordinates[10];
+    // }
+    // if(coordinates[11] != std::numeric_limits<double>::max()){
+    //   goal_state_(QS::OMEY) = coordinates[11];
+    // }
+    // if(coordinates[12] != std::numeric_limits<double>::max()){
+    //   goal_state_(QS::OMEZ) = coordinates[12];
+    // }
     // if(coordinates[13] != std::numeric_limits<double>::max()){
     //   goal_state_(QS::ACCX) = coordinates[13];
     // }

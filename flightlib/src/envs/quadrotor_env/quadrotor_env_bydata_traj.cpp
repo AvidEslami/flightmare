@@ -353,6 +353,7 @@ bool QuadrotorEnvByDataTraj::getObs(Ref<Vector<>> obs) {
 Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
   // Print the time and the step
   mid_train_step_++;
+  // std::cout << "Taking Step: " << mid_train_step_ << std::endl;
   // std::cout << "Time: " << cmd_.t << ", Step: " << mid_train_step_ << std::endl;
   // // Print out the trajectory
   // for (int i = 0; i < traj_.size(); i++){
@@ -389,22 +390,22 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     // }
     for (int i = 0; i < 3; i++){
       // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
-      total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /10;
-      if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /10)){
+      total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /2;
+      if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /2)){
         std::cout << "NAN" << std::endl;
       }
       // std::cout << (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ << std::endl;
       // total_reward += 0.01;
     }
-    for (int i = 7; i < 10; i++){
-      // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
-      total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /10;
-      if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /10)){
-        std::cout << "NAN" << std::endl;
-      }
-      // std::cout << (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ << std::endl;
-      // total_reward += 0.01;
-    }
+    // for (int i = 7; i < 10; i++){
+    //   // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
+    //   total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /2;
+    //   if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /2)){
+    //     std::cout << "NAN" << std::endl;
+    //   }
+    //   // std::cout << (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ << std::endl;
+    //   // total_reward += 0.01;
+    // }
     // total_reward += (quad_state_.x(0) - traj_[desired_pose_index](0))*(quad_state_.x(0) - traj_[desired_pose_index](0)) * pos_coeff_ /10;
     // total_reward += (quad_state_.x(1) - traj_[desired_pose_index](1))*(quad_state_.x(1) - traj_[desired_pose_index](1)) * pos_coeff_ /10;
     // total_reward += (quad_state_.x(2) - traj_[desired_pose_index](2))*(quad_state_.x(2) - traj_[desired_pose_index](2)) * pos_coeff_ /10;
@@ -459,7 +460,7 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
       total_reward = 0;
       std::cout << "Total Reward is Inf" << std::endl;
     }
-    // std::cout << "Total Reward: " << total_reward << std::endl;
+    std::cout << "Total Reward: " << total_reward << std::endl;
     return total_reward;
   }
   else {
@@ -511,7 +512,8 @@ bool QuadrotorEnvByDataTraj::isTerminalState(Scalar &reward) {
   // Once mid__
   int trajectory_length = traj_.size();
   if ((mid_train_step_*2)-1 >= trajectory_length) {
-    reward = 5;
+    // std::cout << "Full Trial Reward" << reward << std::endl;
+    // reward = 5;
     return true;
   }
   else {
