@@ -15,14 +15,14 @@ int flightpath = 3;
 // 1: 9 Meter
 // 2: 15 Meter
 
-int line_counter = 100;
-int eff_line_counter = 100;
+int line_counter = 40;
+int eff_line_counter = 40;
 
 bool toced_continuous = false;
 
 bool completed_lap = false;
 
-bool assist = true;
+bool assist = false;
 
 QuadrotorContinuousEnv::QuadrotorContinuousEnv()
   : QuadrotorContinuousEnv(getenv("FLIGHTMARE_PATH") +
@@ -142,16 +142,26 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
         quad_state_.x(QS::TAUZ) = 6.24;
       }
       else {
-        quad_state_.x(QS::POSX) = 0.0659841;
-        quad_state_.x(QS::POSY) = 9.99912;
-        quad_state_.x(QS::POSZ) = 2.5+5;
-        quad_state_.x(QS::ATTW) = -0.175013;
-        quad_state_.x(QS::ATTX) = 0; 
-        quad_state_.x(QS::ATTY) = 1;
-        quad_state_.x(QS::ATTZ) = 6.59803;
-        quad_state_.x(QS::VELX) = 6.6;
-        quad_state_.x(QS::VELY) = -0.088;
-        quad_state_.x(QS::VELZ) = 0;
+        // quad_state_.x(QS::POSX) = 0.0659841;
+        // quad_state_.x(QS::POSY) = 9.99912;
+        // quad_state_.x(QS::POSZ) = 2.5+5;
+        // quad_state_.x(QS::ATTW) = -0.175013;
+        // quad_state_.x(QS::ATTX) = 0; 
+        // quad_state_.x(QS::ATTY) = 1;
+        // quad_state_.x(QS::ATTZ) = 6.59803;
+        // quad_state_.x(QS::VELX) = 6.6;
+        // quad_state_.x(QS::VELY) = -0.088;
+        // quad_state_.x(QS::VELZ) = 0;
+        quad_state_.x(QS::POSX) = -5;
+        quad_state_.x(QS::POSY) = 4.5;
+        quad_state_.x(QS::POSZ) = 1.2+5;
+        quad_state_.x(QS::ATTW) = 0.18513;
+        quad_state_.x(QS::ATTX) = 0.0;
+        quad_state_.x(QS::ATTY) = 0.0;
+        quad_state_.x(QS::ATTZ) = 0.98271;
+        quad_state_.x(QS::VELX) = 0.0;
+        quad_state_.x(QS::VELY) = 0.0;
+        quad_state_.x(QS::VELZ) = 0.0;
       }
       if (flightpath == 0) {
         goal_state_(QS::POSX) = 5;
@@ -198,16 +208,26 @@ bool QuadrotorContinuousEnv::reset(Ref<Vector<>> obs, const bool random) {
         goal_state_(QS::OMEZ) = 0.2;
       }
       else {
-        goal_state_(QS::POSX) = 0.526912;
-        goal_state_(QS::POSY) = 9.94405;
-        goal_state_(QS::POSZ) = 2.5+5;
-        goal_state_(QS::ATTW) = -1.39747;
-        goal_state_(QS::ATTX) = 0; 
-        goal_state_(QS::ATTY) = 1;
-        goal_state_(QS::ATTZ) = 6.56202;
-        goal_state_(QS::VELX) = 6.5664;
-        goal_state_(QS::VELY) = -1.31;
-        goal_state_(QS::VELZ) = 0;
+        // goal_state_(QS::POSX) = 0.526912;
+        // goal_state_(QS::POSY) = 9.94405;
+        // goal_state_(QS::POSZ) = 2.5+5;
+        // goal_state_(QS::ATTW) = -1.39747;
+        // goal_state_(QS::ATTX) = 0; 
+        // goal_state_(QS::ATTY) = 1;
+        // goal_state_(QS::ATTZ) = 6.56202;
+        // goal_state_(QS::VELX) = 6.5664;
+        // goal_state_(QS::VELY) = -1.31;
+        // goal_state_(QS::VELZ) = 0;
+        goal_state_(QS::POSX) = -5;
+        goal_state_(QS::POSY) = 4.5;
+        goal_state_(QS::POSZ) = 1.2+5;
+        goal_state_(QS::ATTW) = 0.88025;
+        goal_state_(QS::ATTX) = 0.0;
+        goal_state_(QS::ATTY) = 0.0;
+        goal_state_(QS::ATTZ) = 0.474801;
+        goal_state_(QS::VELX) = 0.0;
+        goal_state_(QS::VELY) = 0.0;
+        goal_state_(QS::VELZ) = 0.0;
       }
       // goal_state_(QS::ACCX) = 0.05;
       // goal_state_(QS::ACCY) = -0.36;
@@ -275,6 +295,7 @@ bool QuadrotorContinuousEnv::getObs(Ref<Vector<>> obs) {
   obs.segment<quadenv::kNOri>(quadenv::kOri) = quad_obs_.segment<quadenv::kNOri>(quadenv::kOri);
   obs.segment<quadenv::kNLinVel>(quadenv::kLinVel) = quad_obs_.segment<quadenv::kNLinVel>(quadenv::kLinVel);
   obs.segment<quadenv::kNAngVel>(quadenv::kAngVel) = quad_obs_.segment<quadenv::kNAngVel>(quadenv::kAngVel);
+
   obs.segment<quadenv::kNOri>(quadenv::kOri + 9) = goal_state_.segment<quadenv::kNOri>(quadenv::kOri);
   obs.segment<quadenv::kNLinVel>(quadenv::kLinVel + 9) = goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel);
   obs.segment<quadenv::kNAngVel>(quadenv::kAngVel + 9) = goal_state_.segment<quadenv::kNAngVel>(quadenv::kAngVel);
@@ -461,7 +482,7 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
   // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
   if (((quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) -
        goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-        .squaredNorm() < 0.6)) { // Temporarily increased to 0.1
+        .squaredNorm() < 0.9)) { // Temporarily increased to 0.1
     reward = 10.0;
     myTimer_continuous.toc();
     time_elapsed_continuous = myTimer_continuous.last();
@@ -537,7 +558,8 @@ bool QuadrotorContinuousEnv::isTerminalState(Scalar &reward) {
     //   }
     // }
     // std::string csv_path = "/home/avidavid/Downloads/CPC16_Z1.csv";
-    std::string csv_path = "/home/avidavid/Downloads/data01.csv";
+    // std::string csv_path = "/home/avidavid/Downloads/data01.csv";
+    std::string csv_path = "/home/avidavid/Downloads/big_circle.csv";
     std::vector<std::string> track_data;
     std::vector<double> coordinates;
     loadCSV(track_data, csv_path);

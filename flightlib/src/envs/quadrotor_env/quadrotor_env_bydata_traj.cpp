@@ -13,6 +13,12 @@ std::string trajPath4 = "/home/avidavid/Downloads/random_states.csv";
 std::string trajPath5 = "/home/avidavid/Downloads/random_states (1).csv";
 std::string trajPath6 = "/home/avidavid/Downloads/0.016.csv";
 std::string trajPath7 = "/home/avidavid/Downloads/data01.csv";
+std::string trajPath8 = "/home/avidavid/Downloads/3m_vel_norm.csv";
+std::string trajPath9 = "/home/avidavid/Downloads/6m_vel_norm.csv";
+
+std::string cirPath1 = "/home/avidavid/Downloads/4m_circle.csv";
+std::string cirPath2 = "/home/avidavid/Downloads/6m_circle.csv";
+std::string cirPath3 = "/home/avidavid/Downloads/8m_circle.csv";
 
 
 // Store second last state and use it for computing bell curve rewards at terminal state
@@ -85,27 +91,53 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
     // Pick a random number to choose which data file to use
     // std::uniform_int_distribution<int> data_file_dist(1, 2);
     // int data_file_choice = data_file_dist(random_gen_);
-    int data_file_choice = 7;
-    std::string trajPath;
+    // Pick traj_path randomly between 8 and 9
+    // std::uniform_int_distribution<int> data_file_dist(8, 9);
+    // int data_file_choice = data_file_dist(random_gen_);
+    // std::cout << "Data file choice: " << data_file_choice << std::endl;
 
-    if (data_file_choice == 1){
-      trajPath = trajPath1;
-    }
-    else if (data_file_choice == 2){
-      trajPath = trajPath2;
-    }
-    else if (data_file_choice == 5){
-      trajPath = trajPath5;
-    }
-    else if (data_file_choice == 6) {
-      trajPath = trajPath6;
-    }
-    else if (data_file_choice == 7) {
-      trajPath = trajPath7;
-    }
-    else{
-      trajPath = trajPath3;
-    }
+
+    // // Pick a random circle path from 1 to 3
+    // std::uniform_int_distribution<int> data_file_dist(1, 3);
+    // int data_file_choice = data_file_dist(random_gen_);
+
+    std::string trajPath;
+    // if (data_file_choice == 1){
+    //   trajPath = cirPath1;
+    // }
+    // else if (data_file_choice == 2){
+    //   trajPath = cirPath2;
+    // }
+    // else{
+    //   trajPath = cirPath3;
+    // }
+
+    trajPath = "/home/avidavid/Downloads/big_circle.csv";
+
+    // if (data_file_choice == 1){
+    //   trajPath = trajPath1;
+    // }
+    // else if (data_file_choice == 2){
+    //   trajPath = trajPath2;
+    // }
+    // else if (data_file_choice == 5){
+    //   trajPath = trajPath5;
+    // }
+    // else if (data_file_choice == 6) {
+    //   trajPath = trajPath6;
+    // }
+    // else if (data_file_choice == 7) {
+    //   trajPath = trajPath7;
+    // }
+    // else if (data_file_choice == 8) {
+    //   trajPath = trajPath8;
+    // }
+    // else if (data_file_choice == 9) {
+    //   trajPath = trajPath9;
+    // }
+    // else{
+    //   trajPath = trajPath3;
+    // }
     // Using file:
     // std::cout << "Using file: " << trajPath << std::endl;
     std::ifstream dataFile(trajPath);
@@ -390,22 +422,49 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     // }
     for (int i = 0; i < 3; i++){
       // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
-      total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /2;
-      if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /2)){
+      total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10;
+      if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10)){
         std::cout << "NAN" << std::endl;
       }
       // std::cout << (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ << std::endl;
       // total_reward += 0.01;
     }
-    // for (int i = 7; i < 10; i++){
-    //   // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
-    //   total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /2;
-    //   if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ /2)){
+    // for (int i = 3; i < 7; i++) {
+    //   total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10;
+    //   if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10)){
     //     std::cout << "NAN" << std::endl;
     //   }
-    //   // std::cout << (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ << std::endl;
-    //   // total_reward += 0.01;
+    //   // std::cout << "Current Orientation: " << i << "is: " << quad_state_.x(i) << std::endl;
+    //   // std::cout << "Desired Orientation: " << i << "is: " << traj_[desired_pose_index](i) << std::endl;
     // }
+    
+    // Get normalized orientation for current state and desired state
+    Vector<3> current_orientation;
+    current_orientation << quad_state_.x(3), quad_state_.x(4), quad_state_.x(5);
+    Vector<3> desired_orientation;
+    desired_orientation << traj_[desired_pose_index](3), traj_[desired_pose_index](4), traj_[desired_pose_index](5);
+    // Normalize the orientation
+    current_orientation /= current_orientation.norm();
+    desired_orientation /= desired_orientation.norm();
+    // std::cout << "Current Orientation: " << current_orientation.transpose() << std::endl;
+    // std::cout << "Desired Orientation: " << desired_orientation.transpose() << std::endl;
+    // Apply reward function for orientation
+    for (int i = 0; i < 3; i++){
+      total_reward += (current_orientation(i) - desired_orientation(i))*(current_orientation(i) - desired_orientation(i)) * pos_coeff_*10;
+      if (std::isnan((current_orientation(i) - desired_orientation(i))*(current_orientation(i) - desired_orientation(i)) * pos_coeff_*10)){
+        std::cout << "NAN" << std::endl;
+      }
+    }
+
+    for (int i = 7; i < 10; i++){
+      // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
+      total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10;
+      if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10)){
+        std::cout << "NAN" << std::endl;
+      }
+      // std::cout << (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ << std::endl;
+      // total_reward += 0.01;
+    }
     // total_reward += (quad_state_.x(0) - traj_[desired_pose_index](0))*(quad_state_.x(0) - traj_[desired_pose_index](0)) * pos_coeff_ /10;
     // total_reward += (quad_state_.x(1) - traj_[desired_pose_index](1))*(quad_state_.x(1) - traj_[desired_pose_index](1)) * pos_coeff_ /10;
     // total_reward += (quad_state_.x(2) - traj_[desired_pose_index](2))*(quad_state_.x(2) - traj_[desired_pose_index](2)) * pos_coeff_ /10;
@@ -450,7 +509,7 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
   //                      .squaredNorm();
   //   // survival reward
   //   total_reward += 0.3 + pos_reward + ori_reward + lin_vel_reward + ang_vel_reward;
-    total_reward += 0.01;
+    // total_reward += 0.01;
     // Check if total_reward is NaN
     if (std::isnan(static_cast<double>(total_reward))){
       total_reward = 0;
@@ -460,7 +519,7 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
       total_reward = 0;
       std::cout << "Total Reward is Inf" << std::endl;
     }
-    std::cout << "Total Reward: " << total_reward << std::endl;
+    // std::cout << "Total Reward: " << total_reward << std::endl;
     return total_reward;
   }
   else {

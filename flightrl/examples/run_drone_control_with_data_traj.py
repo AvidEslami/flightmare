@@ -75,14 +75,15 @@ def main():
             tensorboard_log=saver.data_dir,
             policy=MlpPolicy,  # check activation function
             policy_kwargs=dict(
-                net_arch=[dict(pi=[128, 128], vf=[128, 128])], act_fun=tf.nn.leaky_relu),
+                net_arch=[dict(pi=[128, 128], vf=[128, 128])], act_fun=tf.nn.relu),
             env=env,
             lam=0.95,
             gamma=0.99,  # lower 0.9 ~ 0.99
             # n_steps=math.floor(cfg['env']['max_time'] / cfg['env']['ctl_dt']),
             n_steps=250,
             ent_coef=0.00,
-            learning_rate=3e-4,
+            # learning_rate=5e-4,
+            learning_rate=7e-4,
             vf_coef=0.5,
             max_grad_norm=0.5,
             nminibatches=1,
