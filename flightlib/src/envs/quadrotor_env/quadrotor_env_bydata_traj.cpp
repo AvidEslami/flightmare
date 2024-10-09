@@ -92,7 +92,7 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
     quad_state_.x(QS::POSZ) = uniform_dist_(random_gen_) + 10;
 
     float time_partition_window = 0.5f;
-    float measurement_partition_window = 2*time_partition_window;
+    float measurement_partition_window = 10*time_partition_window;
     // Pick a random number to choose which data file to use
     // std::uniform_int_distribution<int> data_file_dist(1, 2);
     // int data_file_choice = data_file_dist(random_gen_);
@@ -158,8 +158,9 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
 
     std::uniform_int_distribution<int> initial_point(2, number_of_lines-101);
 
-    int initial_point_index = initial_point(random_gen_);
-      
+    // int initial_point_index = initial_point(random_gen_);
+    int initial_point_index = 70;
+
     int current_line = 0;
     float initial_time = 0.0f;
     while (std::getline(dataFile, line)){
@@ -589,7 +590,8 @@ bool QuadrotorEnvByDataTraj::isTerminalState(Scalar &reward) {
     // std::cout << "Mid Train Step: " << mid_train_step_ << std::endl;
     // std::cout << "Full Trial Reward" << reward << std::endl;
     // reward = 5;
-    return true;
+    // return true;
+    return false;
   }
   else {
     reward = 0.0;
