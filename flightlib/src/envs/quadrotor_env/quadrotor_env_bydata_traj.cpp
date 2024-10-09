@@ -57,7 +57,11 @@ QuadrotorEnvByDataTraj::QuadrotorEnvByDataTraj(const std::string &cfg_path)
   // obs_dim_ = quadenv::kNObs * 2;
 
   // // NEW APPROACH: Let us just focus on relative positions
-  obs_dim_ = (quadenv::kNObs * 2) - 3;
+  // obs_dim_ = (quadenv::kNObs * 2) - 3;
+  // NEW APPROACH: We start with drone velocity and orientation
+  // Then we add the relative position from the drone to the next 50 points in the trajectory
+  // obs_dim_ = int(floor(3+3+3*50));
+  obs_dim_ = int(floor(3+3+3*50*0.25));
   
 
   act_dim_ = quadenv::kNAct;
@@ -87,7 +91,8 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
     quad_state_.setZero();
     quad_state_.x(QS::POSZ) = uniform_dist_(random_gen_) + 10;
 
-    float time_partition_window = 1.0f;
+    float time_partition_window = 0.5f;
+    float measurement_partition_window = 2*time_partition_window;
     // Pick a random number to choose which data file to use
     // std::uniform_int_distribution<int> data_file_dist(1, 2);
     // int data_file_choice = data_file_dist(random_gen_);
@@ -151,7 +156,7 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
     dataFile.clear();
     dataFile.seekg(0, std::ios::beg);
 
-    std::uniform_int_distribution<int> initial_point(2, number_of_lines-25);
+    std::uniform_int_distribution<int> initial_point(2, number_of_lines-101);
 
     int initial_point_index = initial_point(random_gen_);
       
@@ -198,6 +203,7 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
         break;
       }
     }
+    bool goal_set = false;
     while (std::getline(dataFile, line)) {
       std::istringstream iss(line);
       std::vector<std::string> data;
@@ -205,32 +211,35 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
       while (std::getline(iss, token, ',')) {
         data.push_back(token);
       }
-      if (std::stof(data[0]) - initial_time > time_partition_window){
-        // std::cout << "TIMES: " << initial_time << stof(data[0]) << std::endl;
-        goal_state_(QS::POSX) = std::stof(data[1]);
-        goal_state_(QS::POSY) = std::stof(data[2]);
-        goal_state_(QS::POSZ) = std::stof(data[3]);
-        goal_state_(QS::ATTW) = std::stof(data[4]);
-        goal_state_(QS::ATTX) = std::stof(data[5]);
-        goal_state_(QS::ATTY) = std::stof(data[6]);
-        goal_state_(QS::ATTZ) = std::stof(data[7]);
-        goal_state_(QS::VELX) = std::stof(data[8]);
-        goal_state_(QS::VELY) = std::stof(data[9]);
-        goal_state_(QS::VELZ) = std::stof(data[10]);
-
-        // goal_state_(QS::OMEX) = std::stof(data[11]);
-        // goal_state_(QS::OMEY) = std::stof(data[12]);
-        // goal_state_(QS::OMEZ) = std::stof(data[13]);
-
+      if (goal_set == false) {
+        if (std::stof(data[0]) - initial_time > time_partition_window){
+          // std::cout << "TIMES: " << initial_time << stof(data[0]) << std::endl;
+          goal_state_(QS::POSX) = std::stof(data[1]);
+          goal_state_(QS::POSY) = std::stof(data[2]);
+          goal_state_(QS::POSZ) = std::stof(data[3]);
+          goal_state_(QS::ATTW) = std::stof(data[4]);
+          goal_state_(QS::ATTX) = std::stof(data[5]);
+          goal_state_(QS::ATTY) = std::stof(data[6]);
+          goal_state_(QS::ATTZ) = std::stof(data[7]);
+          goal_state_(QS::VELX) = std::stof(data[8]);
+          goal_state_(QS::VELY) = std::stof(data[9]);
+          goal_state_(QS::VELZ) = std::stof(data[10]);
+          goal_set = true;
+          // goal_state_(QS::OMEX) = std::stof(data[11]);
+          // goal_state_(QS::OMEY) = std::stof(data[12]);
+          // goal_state_(QS::OMEZ) = std::stof(data[13]);
+        }
+      }
+      else if (std::stof(data[0]) - initial_time > measurement_partition_window) {
         break;
       }
-      else {
-        // Push the state into the trajectory
-        Vector<10> state;
-        state << std::stof(data[1]), std::stof(data[2]), std::stof(data[3]), std::stof(data[4]), std::stof(data[5]), std::stof(data[6]), std::stof(data[7]), std::stof(data[8]), std::stof(data[9]), std::stof(data[10]);
-        traj_.push_back(state);
-      }
+      // Push the state into the trajectory
+      Vector<10> state;
+      state << std::stof(data[1]), std::stof(data[2]), std::stof(data[3]), std::stof(data[4]), std::stof(data[5]), std::stof(data[6]), std::stof(data[7]), std::stof(data[8]), std::stof(data[9]), std::stof(data[10]);
+      traj_.push_back(state);
     }
+    // Length of traj_
+    // std::cout << "Trajectory Length: " << traj_.size() << std::endl;
 
       // printf("Starting at time: %f\n", initial_time);
       // printf("Starting at position: %f, %f, %f\n", quad_state_.x(QS::POSX), quad_state_.x(QS::POSY), quad_state_.x(QS::POSZ));
@@ -340,44 +349,49 @@ bool QuadrotorEnvByDataTraj::getObs(Ref<Vector<>> obs) {
   Vector<3> euler_zyx = quad_state_.q().toRotationMatrix().eulerAngles(2, 1, 0);
   // quaternionToEuler(quad_state_.q(), euler);
   quad_obs_ << quad_state_.p, euler_zyx, quad_state_.v, quad_state_.w;
-
   // obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
   //   obs.segment<quadenv::kNObs>(quadenv::kObs + quadenv::kNObs) = goal_state_;
   // obs(quadenv::kNObs) = goal_state_(QS::POSZ); // add goal state to observation vector
 
+  // NEW APPROACH: We start with drone velocity and orientation
+  // Then we add the relative position from the drone to the next 50 points in the trajectory
+  // Drone Velocity and Orientation without position
 
-  // NEW APPROACH: Let us just focus on relative positions
-  //               This lets us reduce model size and improve performance/generalization speed
-  // obs.segment<quadenv::kNObs>(quadenv::kObs) = goal_state_.segment<quadenv::kNObs>(quadenv::kObs) - quad_obs_.segment<quadenv::kNObs>(quadenv::kObs);
-  
+  // Clear Observation Vector
+  obs.setZero();
+  obs.segment<3>(0) = quad_obs_.segment<3>(3);
+  obs.segment<3>(3) = quad_obs_.segment<3>(6); //TODO: Verify These
 
-  // Print current goal state
-  // std::cout << "Current Goal State: " << goal_state_(QS::POSX) << ", " << goal_state_(QS::POSY) << ", " << goal_state_(QS::POSZ) << std::endl;
-  // Print relative position and velocity and other states
-  // std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
-  // std::cout << "Relative Position: " << obs(0) << ", " << obs(1) << ", " << obs(2) << std::endl;
-  // std::cout << "Relative Velocity: " << obs(3) << ", " << obs(4) << ", " << obs(5) << std::endl;
-  // std::cout << "Relative Angular Velocity: " << obs(6) << ", " << obs(7) << ", " << obs(8) << std::endl;
-  // std::cout << "Relative Orientation: " << obs(9) << ", " << obs(10) << ", " << obs(11) << std::endl;
-  // Newest Approach, use relative position then append drone's velocity and orientation followed by goal state velocity and orientation
-  obs.segment<quadenv::kNPos>(quadenv::kPos) = goal_state_.segment<quadenv::kNPos>(quadenv::kPos) - quad_obs_.segment<quadenv::kNPos>(quadenv::kPos);
-  obs.segment<quadenv::kNOri>(quadenv::kOri) = quad_obs_.segment<quadenv::kNOri>(quadenv::kOri);
-  obs.segment<quadenv::kNLinVel>(quadenv::kLinVel) = quad_obs_.segment<quadenv::kNLinVel>(quadenv::kLinVel);
-  obs.segment<quadenv::kNAngVel>(quadenv::kAngVel) = quad_obs_.segment<quadenv::kNAngVel>(quadenv::kAngVel);
-
-  obs.segment<quadenv::kNOri>(quadenv::kOri + 9) = goal_state_.segment<quadenv::kNOri>(quadenv::kOri);
-  obs.segment<quadenv::kNLinVel>(quadenv::kLinVel + 9) = goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel);
-  obs.segment<quadenv::kNAngVel>(quadenv::kAngVel + 9) = goal_state_.segment<quadenv::kNAngVel>(quadenv::kAngVel);
-
+  // Append Relative Position from Drone to Next 50 Points in Trajectory
+  // std::cout << "Trajectory Length: " << traj_.size() << std::endl;
+  // std::cout << "Current Step: " << mid_train_step_ << std::endl;
+  // std::cout << "Current Trajectory Point: " << traj_[mid_train_step_].transpose() << std::endl;
+  int skipped_points = 0;
+  for (int i = mid_train_step_; i < mid_train_step_ + 50; i++){
+    if (i%4 == 0) {
+      if (i < traj_.size()){
+        obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 3*(i-mid_train_step_-skipped_points)) = traj_[i].segment<3>(0) - quad_state_.x.segment<3>(0);
+      }
+      else{
+        obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 3*(i-mid_train_step_-skipped_points)) = Vector<3>::Zero();
+      }
+    }
+    else {
+      skipped_points++;
+    }
+  }
 
   // Print Full Drone State
   // std::cout << quad_obs_.transpose() << std::endl;
   // // Print Full Goal State
   // std::cout << goal_state_.transpose() << std::endl;
-  // // Print Full Observation
+
+  // Print Full Observation 
   // std::cout << obs.transpose() << std::endl;
   // std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
-  // New ObsDim is 12
+
+  // Print Obs dimension
+  // std::cout << obs.size() << std::endl;
 
   return true;
 }
@@ -408,7 +422,7 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
   // print length of traj_
   // std::cout << "Trajectory Length: " << traj_.size() << std::endl;
   int trajectory_length = traj_.size();
-  if ((mid_train_step_*2)-1 < trajectory_length){
+  if ((mid_train_step_*2)-1 < trajectory_length/2){
     int desired_pose_index = mid_train_step_*2 - 1;
     // Print current pose and desired pose
     // std::cout << "Current Pose: " << quad_state_.x.segment<10>(0).transpose() << std::endl;
@@ -570,7 +584,9 @@ bool QuadrotorEnvByDataTraj::isTerminalState(Scalar &reward) {
   // }
   // Once mid__
   int trajectory_length = traj_.size();
-  if ((mid_train_step_*2)-1 >= trajectory_length) {
+  if ((mid_train_step_*2)-1 >= trajectory_length/2) { //Slightly off, should be a bit smaller
+    // std::cout << "Reached End of Trajectory" << std::endl;
+    // std::cout << "Mid Train Step: " << mid_train_step_ << std::endl;
     // std::cout << "Full Trial Reward" << reward << std::endl;
     // reward = 5;
     return true;
