@@ -27,10 +27,14 @@ if __name__ == "__main__":
     # logger_dir = "./saved/2024-10-01-20-25-26/" # Full Reward - Orientation 3m+6m -> relu not leaky, even higher learning rate
     # logger_dir = "./saved/2024-10-01-20-44-14/" # Full Reward 3m+6m -> relu not leaky, even higher learning rate
     # logger_dir = "./saved/2024-10-01-22-18-46/" # Big Circle
+
     # logger_dir = "./saved/2024-10-08-19-43-17/"  # New input scheme
     # logger_dir = "./saved/2024-10-08-21-12-02/"  # New input scheme, 5 lr, only see every 4th step
     # logger_dir = "./saved/2024-10-08-22-16-24/"  # New input scheme, 5 lr, only see every 4th step, fixed non relative pos...
-    logger_dir = "./saved/2024-10-09-00-28-57/"  # New input scheme, 5 lr, only see every 4th step, fixed non relative pos...
+    # logger_dir = "./saved/2024-10-09-00-28-57/"  # New input scheme, 5 lr, only see every 4th step, fixed non relative pos...
+
+    # logger_dir = "./saved/2024-10-15-19-04-38/"  # New input scheme, 2 train hor, 0.5 view hor, pos,vel,ori reward
+    logger_dir = "./saved/2024-10-15-20-13-57/"  # New input scheme, 2 train hor, 0.5 view hor, pos,vel,ori reward
 
 
     ppo_var_names = ["ep_reward_mean", "ep_len_mean", "policy_entropy"]
