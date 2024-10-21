@@ -21,12 +21,15 @@ std::string cirPath2 = "/home/avidavid/Downloads/6m_circle.csv";
 std::string cirPath3 = "/home/avidavid/Downloads/8m_circle.csv";
 
 float view_horizon = 0.5f;
-float train_horizon = 2.0f;
+float train_horizon = 3.0f;
 // Store second last state and use it for computing bell curve rewards at terminal state
 // Vector<quadenv::kNObs> second_last_state;
+int debug_actions = 0;
 int debug_horizons = 0;
 int debug_velocities = 0;
 int debug_orientations = 0;
+ 
+int enable_orientation_reward = 0;
 
 QuadrotorEnvByDataTraj::QuadrotorEnvByDataTraj(const std::string &cfg_path)
   : EnvBase(),
@@ -63,9 +66,9 @@ QuadrotorEnvByDataTraj::QuadrotorEnvByDataTraj(const std::string &cfg_path)
   // obs_dim_ = (quadenv::kNObs * 2) - 3;
   // NEW APPROACH: We start with drone velocity and orientation
   // Then we add the relative position from the drone to the next 50 points in the trajectory
-  // obs_dim_ = int(floor(3+3+3*50));
+  obs_dim_ = int(floor(3+3+3*50));
   // obs_dim_ = int(floor(3+3+3*50*0.25)); // Pos every 4 steps
-  obs_dim_ = int(floor(3+3+3*50*0.25+3*50*0.25)); // Pos and Ori every 4 steps
+  // obs_dim_ = int(floor(3+3+3*50*0.25+3*50*0.25)); // Pos and Ori every 4 steps
 
   act_dim_ = quadenv::kNAct;
 
@@ -121,7 +124,7 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
     //   trajPath = cirPath3;
     // }
 
-    trajPath = "/home/avidavid/Downloads/big_circle.csv";
+    trajPath = "/home/avidavid/Downloads/dummy_circle_path.csv";
 
     // if (data_file_choice == 1){
     //   trajPath = trajPath1;
@@ -160,7 +163,7 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
     dataFile.clear();
     dataFile.seekg(0, std::ios::beg);
 
-    std::uniform_int_distribution<int> initial_point(2, number_of_lines-251);
+    std::uniform_int_distribution<int> initial_point(2, number_of_lines-351);
 
     int initial_point_index = initial_point(random_gen_);
     // int initial_point_index = 2;
@@ -373,23 +376,23 @@ bool QuadrotorEnvByDataTraj::getObs(Ref<Vector<>> obs) {
   // std::cout << "Current Trajectory Point: " << traj_[mid_train_step_].transpose() << std::endl;
   int skipped_points = 0;
   for (int i = mid_train_step_; i < mid_train_step_ + 50; i++){
-    if (i%4 == 0) {
+    // if (i%4 == 0) {
       if (i < traj_.size()){
-        obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 6*(i-mid_train_step_-skipped_points)) = traj_[i].segment<3>(0) - quad_state_.x.segment<3>(0);
-        // Convert Orientation to Euler Angles
-        Vector<4> traj_quat = traj_[i].segment<4>(3);
-        Eigen::Quaternion<Scalar> traj_orientation(traj_quat(0), traj_quat(1), traj_quat(2), traj_quat(3));
-        Vector<3> traj_euler = traj_orientation.toRotationMatrix().eulerAngles(2, 1, 0);
-        // Add Orientation to Observation
-        obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 6*(i-mid_train_step_-skipped_points)+3) = traj_euler;
+        obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 3*(i-mid_train_step_-skipped_points)) = traj_[i].segment<3>(0) - quad_state_.x.segment<3>(0);
+        // // Convert Orientation to Euler Angles
+        // Vector<4> traj_quat = traj_[i].segment<4>(3);
+        // Eigen::Quaternion<Scalar> traj_orientation(traj_quat(0), traj_quat(1), traj_quat(2), traj_quat(3));
+        // Vector<3> traj_euler = traj_orientation.toRotationMatrix().eulerAngles(2, 1, 0);
+        // // Add Orientation to Observation
+        // obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 6*(i-mid_train_step_-skipped_points)+3) = traj_euler;
       }
       else{
-        obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 6*(i-mid_train_step_-skipped_points)) = Vector<3>::Zero();
+        obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 3*(i-mid_train_step_-skipped_points)) = Vector<3>::Zero();
       }
-    }
-    else {
-      skipped_points++;
-    }
+    // }
+    // else {
+    //   skipped_points++;
+    // }
   }
 
   // Print Full Drone State
@@ -417,6 +420,15 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
   //   std::cout << "Trajectory Point " << i << ": " << traj_[i].transpose() << std::endl;
   // }
   quad_act_ = act.cwiseProduct(act_std_) + act_mean_;
+  // // Set quad_act to hover control, m*g/11.02,0,0,0
+  // quad_act_ << 7.12, 0.0, 0.0, 0.0;    # CONCERNING
+  // // Set quadrotor orientation to be 0,0,0,0
+  // quad_state_.x.segment<4>(3) << 0.0, 0.0, 0.0, 0.0;
+  // // Set velocity to be 0,0,0
+  // quad_state_.x.segment<2>(6) << 0.0, 0.0;
+  // quadrotor_ptr_->reset(quad_state_);
+  // std::cout << "Act: " << quad_act_.transpose() << std::endl;
+
   cmd_.t += sim_dt_;
   cmd_.thrusts = quad_act_;
 
@@ -487,20 +499,22 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     desired_orientation /= desired_orientation.norm();
 
     // Apply reward function for orientation
-    for (int i = 0; i < 4; i++){
-      total_reward += (current_orientation(i) - desired_orientation(i))*(current_orientation(i) - desired_orientation(i)) * pos_coeff_*10;
-      if (std::isnan((current_orientation(i) - desired_orientation(i))*(current_orientation(i) - desired_orientation(i)) * pos_coeff_*10)){
-        std::cout << "NAN" << std::endl;
+    if (enable_orientation_reward) {
+      for (int i = 0; i < 4; i++){
+        total_reward += (current_orientation(i) - desired_orientation(i))*(current_orientation(i) - desired_orientation(i)) * pos_coeff_*10;
+        if (std::isnan((current_orientation(i) - desired_orientation(i))*(current_orientation(i) - desired_orientation(i)) * pos_coeff_*10)){
+          std::cout << "NAN" << std::endl;
+        }
       }
-    }
-    if (debug_orientations) {
-      std::cout << "Current Orientation: " << current_orientation(0) << ", " << current_orientation(1) << ", " << current_orientation(2) << ", " << current_orientation(3) << std::endl;
-      std::cout << "Desired Orientation: " << desired_orientation(0) << ", " << desired_orientation(1) << ", " << desired_orientation(2) << ", " << desired_orientation(3) << std::endl;
-      std::cout << "Orientation Difference: " << current_orientation(0)-desired_orientation(0) << ", " << current_orientation(1)-desired_orientation(1) << ", " << current_orientation(2)-desired_orientation(2) << ", " << current_orientation(3)-desired_orientation(3) << std::endl;
-      // Log Using Degrees, The returned angles are in the ranges [0:pi]x[-pi:pi]x[-pi:pi]
-      // std::cout << "Current Orientation: " << current_orientation(0)*180/M_PI << ", " << current_orientation(1)*180/M_PI << ", " << current_orientation(2)*180/M_PI << std::endl;
-      // std::cout << "Desired Orientation: " << desired_orientation(0)*180/M_PI << ", " << desired_orientation(1)*180/M_PI << ", " << desired_orientation(2)*180/M_PI << std::endl;
-      // std::cout << "Orientation Difference: " << (current_orientation(0)-desired_orientation(0))*180/M_PI << ", " << (current_orientation(1)-desired_orientation(1))*180/M_PI << ", " << (current_orientation(2)-desired_orientation(2))*180/M_PI << std::endl;
+      if (debug_orientations) {
+        std::cout << "Current Orientation: " << current_orientation(0) << ", " << current_orientation(1) << ", " << current_orientation(2) << ", " << current_orientation(3) << std::endl;
+        std::cout << "Desired Orientation: " << desired_orientation(0) << ", " << desired_orientation(1) << ", " << desired_orientation(2) << ", " << desired_orientation(3) << std::endl;
+        std::cout << "Orientation Difference: " << current_orientation(0)-desired_orientation(0) << ", " << current_orientation(1)-desired_orientation(1) << ", " << current_orientation(2)-desired_orientation(2) << ", " << current_orientation(3)-desired_orientation(3) << std::endl;
+        // Log Using Degrees, The returned angles are in the ranges [0:pi]x[-pi:pi]x[-pi:pi]
+        // std::cout << "Current Orientation: " << current_orientation(0)*180/M_PI << ", " << current_orientation(1)*180/M_PI << ", " << current_orientation(2)*180/M_PI << std::endl;
+        // std::cout << "Desired Orientation: " << desired_orientation(0)*180/M_PI << ", " << desired_orientation(1)*180/M_PI << ", " << desired_orientation(2)*180/M_PI << std::endl;
+        // std::cout << "Orientation Difference: " << (current_orientation(0)-desired_orientation(0))*180/M_PI << ", " << (current_orientation(1)-desired_orientation(1))*180/M_PI << ", " << (current_orientation(2)-desired_orientation(2))*180/M_PI << std::endl;
+      }
     }
 
     for (int i = 7; i < 10; i++){
@@ -566,8 +580,6 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
       total_reward = 0;
       std::cout << "Total Reward is Inf" << std::endl;
     }
-    // std::cout << "Total Reward: " << total_reward << std::endl;
-    
     // Print Current Time, Step, and trajectory length
     if (debug_horizons) {
       std::cout << "Time: " << cmd_.t << ", Step: " << mid_train_step_ << ", Trajectory Length: " << trajectory_length << std::endl;
@@ -580,6 +592,24 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
       target_velocity_ = traj_[desired_pose_index].segment<3>(7);
       std::cout << "Goal Velocity: " << target_velocity_.norm() << std::endl;
     }
+
+    // - control action penalty
+    Vector<4> hover_action;
+    hover_action << 9.8, 0, 0, 0;
+    // act_reward is the L2 norm of the difference between the current action and the hover action
+    Scalar act_reward = 10 * act_coeff_ * (quad_act_ - hover_action).norm();
+    total_reward += act_reward;
+
+    if (debug_actions) {
+      // // std::cout << "Total Reward: " << total_reward << std::endl;
+      // Print out the action vector
+      std::cout << "Action Vector: " << quad_act_.transpose() << std::endl;
+      // Print out the action reward
+      std::cout << "Action Reward: " << act_reward << std::endl;
+      std::cout << "Act Reward Could be: " << act_coeff_ * (hover_action - hover_action).norm() << std::endl;
+    }
+    
+
     return total_reward;
   }
   else {

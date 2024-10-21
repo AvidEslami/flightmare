@@ -28,6 +28,10 @@ QuadrotorEnv::QuadrotorEnv(const std::string &cfg_path)
   dynamics.updateParams(cfg_);
   quadrotor_ptr_->updateDynamics(dynamics);
 
+  // Print Quadrotor Dynamics
+  std::cout << "Quadrotor Dynamics: " << std::endl;
+  std::cout << dynamics << std::endl;
+
   // define a bounding box
   world_box_ << -30, 30, -30, 30, -30, 30;
   if (!quadrotor_ptr_->setWorldBox(world_box_)) {
@@ -49,6 +53,11 @@ QuadrotorEnv::QuadrotorEnv(const std::string &cfg_path)
 
   // load parameters
   loadParam(cfg_);
+
+  // print out the configuration
+  std::cout << "Configuration: " << std::endl;
+  std::cout << *this << std::endl;
+  std::cout << "Mass: " << mass << std::endl;
 }
 
 QuadrotorEnv::~QuadrotorEnv() {}
@@ -302,6 +311,10 @@ Scalar QuadrotorEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
   quad_act_ = act.cwiseProduct(act_std_) + act_mean_;
   cmd_.t += sim_dt_;
   cmd_.thrusts = quad_act_;
+
+  // print the quad_act_
+  std::cout << "Commanded Thrusts: " << quad_act_.transpose() << std::endl;
+  std::cout << "act" << act.transpose() << std::endl;
 
   // simulate quadrotor
   quadrotor_ptr_->run(cmd_, sim_dt_);

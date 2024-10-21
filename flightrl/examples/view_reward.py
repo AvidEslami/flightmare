@@ -34,7 +34,15 @@ if __name__ == "__main__":
     # logger_dir = "./saved/2024-10-09-00-28-57/"  # New input scheme, 5 lr, only see every 4th step, fixed non relative pos...
 
     # logger_dir = "./saved/2024-10-15-19-04-38/"  # New input scheme, 2 train hor, 0.5 view hor, pos,vel,ori reward
-    logger_dir = "./saved/2024-10-15-20-13-57/"  # New input scheme, 2 train hor, 0.5 view hor, pos,vel,ori reward
+    # logger_dir = "./saved/2024-10-15-20-13-57/"  # New input scheme, 2 train hor, 0.5 view hor, pos,vel,ori reward
+    logger_dir = "./saved/2024-10-15-23-37-00/"  # New input scheme, 2 train hor, 0.5 view hor, pos,vel,ori reward
+
+    # logger_dir = "./saved/2024-10-20-12-36-09/" # Dummy Circle Path, *new input scheme same reward as before 0.5,2.0, no act penalty
+    # logger_dir = "./saved/2024-10-20-13-44-52/" # Dummy Circle Path, *new input scheme same reward as before 0.5,2.0, basic act penalty, 4000 steps
+    # logger_dir = "./saved/2024-10-20-15-05-34/" # DCP, act penalty relative to hover not normalized, 5000 steps 0.5,2.5, still spinning
+    # logger_dir = "./saved/2024-10-20-15-54-24/" # Same as above but with a fixed normalized penalty
+    # logger_dir = "./saved/2024-10-20-16-42-52/" # Same as above but with much larger penalty
+    # logger_dir = "./saved/2024-10-20-19-00-36/" # Try again but with penalty hopefully large enough to just force hover command
 
 
     ppo_var_names = ["ep_reward_mean", "ep_len_mean", "policy_entropy"]
