@@ -57,7 +57,7 @@ points["x"] = pd.to_numeric(points["x"], errors='coerce')
 points["y"] = pd.to_numeric(points["y"], errors='coerce')
 
 # Scatter plot with larger points for visibility
-plt.scatter(points["x"], points["y"], label="Points", color="red", s=4)
+plt.scatter(points["x"], points["y"], label="Points", color="red", s=1)
 
 # Set axis limits to ensure points are visible within the trajectory's bounds
 plt.xlim([path["p_x"].min() - 1, path["p_x"].max() + 1])

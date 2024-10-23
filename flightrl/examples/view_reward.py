@@ -49,7 +49,8 @@ if __name__ == "__main__":
     # logger_dir = "./saved/2024-10-22-00-01-08/" # Same as above but with 10000 steps instead of 6000 and 0.5,4.0 instead of 0.5,3.5 -> pos/vel*10, act*100
     # logger_dir = "./saved/2024-10-22-09-53-22/" # Same as above but with 24000 steps, for some reason ep_len_mean was 49 instead of 74
     # logger_dir = "./saved/2024-10-22-19-00-55/" # Same as above but with nminibatches set to 2 instead of 1
-    logger_dir = "./saved/2024-10-22-21-00-58/" # Same as 10000 steps case except only 2000 iterations and 10* act pen instead of 100*
+    # logger_dir = "./saved/2024-10-22-21-00-58/" # Same as 10000 steps case except only 2000 iterations and 10* act pen instead of 100*
+    logger_dir = "./saved/2024-10-22-22-25-19/" # Above but 4000 iterations, 5* vel pen instead of 10*
 
     ppo_var_names = ["ep_reward_mean", "ep_len_mean", "policy_entropy"]
     ppo_y_labels = ["Reward", "Episode Length", "Policy Entropy"]

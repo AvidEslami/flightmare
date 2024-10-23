@@ -21,13 +21,13 @@ std::string cirPath2 = "/home/avidavid/Downloads/6m_circle.csv";
 std::string cirPath3 = "/home/avidavid/Downloads/8m_circle.csv";
 
 float view_horizon = 0.5f;
-float train_horizon = 14.0f;
+float train_horizon = 5.5f;
 // Store second last state and use it for computing bell curve rewards at terminal state
 // Vector<quadenv::kNObs> second_last_state;
 int log_positions = 1;
 
 int debug_actions = 0;
-int debug_horizons = 1;
+int debug_horizons = 0;
 int debug_velocities = 0;
 int debug_orientations = 0;
 int debug_total_reward = 0;
@@ -36,8 +36,6 @@ int debug_dynamics = 0;
 int debug_observations = 0;
 
 int add_random_noise = 0;
-int enable_long_flights = 1;
-bool flight_started = false;
 
 int enable_orientation_reward = 0;
 
@@ -113,12 +111,6 @@ QuadrotorEnvByDataTraj::~QuadrotorEnvByDataTraj() {}
 
 
 bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
-  if (flight_started == true) {
-    return true;
-  }
-  if (enable_long_flights) {
-    flight_started = true;
-  }
   quad_state_.setZero();
   quad_act_.setZero();
   mid_train_step_ = 0;
@@ -195,7 +187,7 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
     dataFile.clear();
     dataFile.seekg(0, std::ios::beg);
 
-    std::uniform_int_distribution<int> initial_point(2, number_of_lines-451);
+    std::uniform_int_distribution<int> initial_point(2, number_of_lines-501);
 
     int initial_point_index = initial_point(random_gen_);
     // int initial_point_index = 200;
@@ -583,9 +575,9 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
 
     for (int i = 7; i < 10; i++){
       // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
-      total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10;
-      vel_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10;
-      if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10)){
+      total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*5;
+      vel_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*5;
+      if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*5)){
         std::cout << "NAN" << std::endl;
       }
       // std::cout << (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ << std::endl;
