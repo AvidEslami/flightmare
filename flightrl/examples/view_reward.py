@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     # logger_dir = "./saved/2024-10-15-19-04-38/"  # New input scheme, 2 train hor, 0.5 view hor, pos,vel,ori reward
     # logger_dir = "./saved/2024-10-15-20-13-57/"  # New input scheme, 2 train hor, 0.5 view hor, pos,vel,ori reward
-    logger_dir = "./saved/2024-10-15-23-37-00/"  # New input scheme, 2 train hor, 0.5 view hor, pos,vel,ori reward
+    # logger_dir = "./saved/2024-10-15-23-37-00/"  # New input scheme, 2 train hor, 0.5 view hor, pos,vel,ori reward
 
     # logger_dir = "./saved/2024-10-20-12-36-09/" # Dummy Circle Path, *new input scheme same reward as before 0.5,2.0, no act penalty
     # logger_dir = "./saved/2024-10-20-13-44-52/" # Dummy Circle Path, *new input scheme same reward as before 0.5,2.0, basic act penalty, 4000 steps
@@ -44,6 +44,12 @@ if __name__ == "__main__":
     # logger_dir = "./saved/2024-10-20-16-42-52/" # Same as above but with much larger penalty
     # logger_dir = "./saved/2024-10-20-19-00-36/" # Try again but with penalty hopefully large enough to just force hover command
 
+    # logger_dir = "./saved/2024-10-21-20-11-32/"  # Dummy Circle Path, just pose as input, pos traj + act rewards
+    # logger_dir = "./saved/2024-10-21-22-41-41/" # Fixed Hover act penalty, weird breaking points and jumps in training curves
+    # logger_dir = "./saved/2024-10-22-00-01-08/" # Same as above but with 10000 steps instead of 6000 and 0.5,4.0 instead of 0.5,3.5 -> pos/vel*10, act*100
+    # logger_dir = "./saved/2024-10-22-09-53-22/" # Same as above but with 24000 steps, for some reason ep_len_mean was 49 instead of 74
+    # logger_dir = "./saved/2024-10-22-19-00-55/" # Same as above but with nminibatches set to 2 instead of 1
+    logger_dir = "./saved/2024-10-22-21-00-58/" # Same as 10000 steps case except only 2000 iterations and 10* act pen instead of 100*
 
     ppo_var_names = ["ep_reward_mean", "ep_len_mean", "policy_entropy"]
     ppo_y_labels = ["Reward", "Episode Length", "Policy Entropy"]

@@ -21,14 +21,24 @@ std::string cirPath2 = "/home/avidavid/Downloads/6m_circle.csv";
 std::string cirPath3 = "/home/avidavid/Downloads/8m_circle.csv";
 
 float view_horizon = 0.5f;
-float train_horizon = 3.0f;
+float train_horizon = 14.0f;
 // Store second last state and use it for computing bell curve rewards at terminal state
 // Vector<quadenv::kNObs> second_last_state;
+int log_positions = 1;
+
 int debug_actions = 0;
-int debug_horizons = 0;
+int debug_horizons = 1;
 int debug_velocities = 0;
 int debug_orientations = 0;
- 
+int debug_total_reward = 0;
+int debug_time = 0;
+int debug_dynamics = 0;
+int debug_observations = 0;
+
+int add_random_noise = 0;
+int enable_long_flights = 1;
+bool flight_started = false;
+
 int enable_orientation_reward = 0;
 
 QuadrotorEnvByDataTraj::QuadrotorEnvByDataTraj(const std::string &cfg_path)
@@ -53,6 +63,11 @@ QuadrotorEnvByDataTraj::QuadrotorEnvByDataTraj(const std::string &cfg_path)
   dynamics.updateParams(cfg_);
   quadrotor_ptr_->updateDynamics(dynamics);
 
+  if (debug_dynamics) {
+    std::cout << "Quadrotor dynamics: " << std::endl;
+    std::cout << dynamics << std::endl;
+  }
+
   // define a bounding box
   world_box_ << -50, 50, -50, 50, -50, 50;
   if (!quadrotor_ptr_->setWorldBox(world_box_)) {
@@ -66,9 +81,12 @@ QuadrotorEnvByDataTraj::QuadrotorEnvByDataTraj(const std::string &cfg_path)
   // obs_dim_ = (quadenv::kNObs * 2) - 3;
   // NEW APPROACH: We start with drone velocity and orientation
   // Then we add the relative position from the drone to the next 50 points in the trajectory
-  obs_dim_ = int(floor(3+3+3*50));
+  // obs_dim_ = int(floor(3+3+3*50));
   // obs_dim_ = int(floor(3+3+3*50*0.25)); // Pos every 4 steps
   // obs_dim_ = int(floor(3+3+3*50*0.25+3*50*0.25)); // Pos and Ori every 4 steps
+
+  // When the trajectory is obvious:
+  obs_dim_ = quadenv::kNObs;
 
   act_dim_ = quadenv::kNAct;
 
@@ -80,6 +98,14 @@ QuadrotorEnvByDataTraj::QuadrotorEnvByDataTraj(const std::string &cfg_path)
 
   // load parameters
   loadParam(cfg_);
+
+  if (log_positions) {
+    // Create a csv file to log the positions, each row will be an x,y,z position
+    std::ofstream logFile;
+    logFile.open("positions.csv");
+    logFile << "x,y,z" << std::endl;
+    logFile.close();
+  }
 }
 
 QuadrotorEnvByDataTraj::~QuadrotorEnvByDataTraj() {}
@@ -87,6 +113,12 @@ QuadrotorEnvByDataTraj::~QuadrotorEnvByDataTraj() {}
 
 
 bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
+  if (flight_started == true) {
+    return true;
+  }
+  if (enable_long_flights) {
+    flight_started = true;
+  }
   quad_state_.setZero();
   quad_act_.setZero();
   mid_train_step_ = 0;
@@ -163,10 +195,10 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
     dataFile.clear();
     dataFile.seekg(0, std::ios::beg);
 
-    std::uniform_int_distribution<int> initial_point(2, number_of_lines-351);
+    std::uniform_int_distribution<int> initial_point(2, number_of_lines-451);
 
     int initial_point_index = initial_point(random_gen_);
-    // int initial_point_index = 2;
+    // int initial_point_index = 200;
       
     int current_line = 0;
     float initial_time = 0.0f;
@@ -200,12 +232,14 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
         // std::cout << "Initial Position: " << quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos).transpose() << std::endl;
 
         // Add a small random noise to the initial state
-        quad_state_.x(QS::POSX) += 0.1*uniform_dist_(random_gen_);
-        quad_state_.x(QS::POSY) += 0.1*uniform_dist_(random_gen_);
-        quad_state_.x(QS::POSZ) += 0.1*uniform_dist_(random_gen_);
-        quad_state_.x(QS::VELX) += 0.1*uniform_dist_(random_gen_);
-        quad_state_.x(QS::VELY) += 0.1*uniform_dist_(random_gen_);
-        quad_state_.x(QS::VELZ) += 0.1*uniform_dist_(random_gen_);
+        if (add_random_noise){
+          quad_state_.x(QS::POSX) += 0.1*uniform_dist_(random_gen_);
+          quad_state_.x(QS::POSY) += 0.1*uniform_dist_(random_gen_);
+          quad_state_.x(QS::POSZ) += 0.1*uniform_dist_(random_gen_);
+          quad_state_.x(QS::VELX) += 0.1*uniform_dist_(random_gen_);
+          quad_state_.x(QS::VELY) += 0.1*uniform_dist_(random_gen_);
+          quad_state_.x(QS::VELZ) += 0.1*uniform_dist_(random_gen_);
+        }
         // quad_state_.qx /= quad_state_.qx.norm();
 
         break;
@@ -357,6 +391,17 @@ bool QuadrotorEnvByDataTraj::getObs(Ref<Vector<>> obs) {
   Vector<3> euler_zyx = quad_state_.q().toRotationMatrix().eulerAngles(2, 1, 0);
   // quaternionToEuler(quad_state_.q(), euler);
   quad_obs_ << quad_state_.p, euler_zyx, quad_state_.v, quad_state_.w;
+
+  obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
+
+  if (debug_observations){
+    // Print Full Observation 
+    std::cout << obs.transpose() << std::endl;
+    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+  }
+
+  return true;
+
   // obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
   //   obs.segment<quadenv::kNObs>(quadenv::kObs + quadenv::kNObs) = goal_state_;
   // obs(quadenv::kNObs) = goal_state_(QS::POSZ); // add goal state to observation vector
@@ -366,34 +411,34 @@ bool QuadrotorEnvByDataTraj::getObs(Ref<Vector<>> obs) {
   // Drone Velocity and Orientation without position
 
   // Clear Observation Vector
-  obs.setZero();
-  obs.segment<3>(0) = quad_obs_.segment<3>(3);
-  obs.segment<3>(3) = quad_obs_.segment<3>(6); //TODO: Verify These
+  // obs.setZero();
+  // obs.segment<3>(0) = quad_obs_.segment<3>(3);
+  // obs.segment<3>(3) = quad_obs_.segment<3>(6); //TODO: Verify These
 
-  // Append Relative Position from Drone to Next 50 Points in Trajectory
-  // std::cout << "Trajectory Length: " << traj_.size() << std::endl;
-  // std::cout << "Current Step: " << mid_train_step_ << std::endl;
-  // std::cout << "Current Trajectory Point: " << traj_[mid_train_step_].transpose() << std::endl;
-  int skipped_points = 0;
-  for (int i = mid_train_step_; i < mid_train_step_ + 50; i++){
-    // if (i%4 == 0) {
-      if (i < traj_.size()){
-        obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 3*(i-mid_train_step_-skipped_points)) = traj_[i].segment<3>(0) - quad_state_.x.segment<3>(0);
-        // // Convert Orientation to Euler Angles
-        // Vector<4> traj_quat = traj_[i].segment<4>(3);
-        // Eigen::Quaternion<Scalar> traj_orientation(traj_quat(0), traj_quat(1), traj_quat(2), traj_quat(3));
-        // Vector<3> traj_euler = traj_orientation.toRotationMatrix().eulerAngles(2, 1, 0);
-        // // Add Orientation to Observation
-        // obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 6*(i-mid_train_step_-skipped_points)+3) = traj_euler;
-      }
-      else{
-        obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 3*(i-mid_train_step_-skipped_points)) = Vector<3>::Zero();
-      }
-    // }
-    // else {
-    //   skipped_points++;
-    // }
-  }
+  // // Append Relative Position from Drone to Next 50 Points in Trajectory
+  // // std::cout << "Trajectory Length: " << traj_.size() << std::endl;
+  // // std::cout << "Current Step: " << mid_train_step_ << std::endl;
+  // // std::cout << "Current Trajectory Point: " << traj_[mid_train_step_].transpose() << std::endl;
+  // int skipped_points = 0;
+  // for (int i = mid_train_step_; i < mid_train_step_ + 50; i++){
+  //   // if (i%4 == 0) {
+  //     if (i < traj_.size()){
+  //       obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 3*(i-mid_train_step_-skipped_points)) = traj_[i].segment<3>(0) - quad_state_.x.segment<3>(0);
+  //       // // Convert Orientation to Euler Angles
+  //       // Vector<4> traj_quat = traj_[i].segment<4>(3);
+  //       // Eigen::Quaternion<Scalar> traj_orientation(traj_quat(0), traj_quat(1), traj_quat(2), traj_quat(3));
+  //       // Vector<3> traj_euler = traj_orientation.toRotationMatrix().eulerAngles(2, 1, 0);
+  //       // // Add Orientation to Observation
+  //       // obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 6*(i-mid_train_step_-skipped_points)+3) = traj_euler;
+  //     }
+  //     else{
+  //       obs.segment<quadenv::kNPos>(quadenv::kPos + 6 + 3*(i-mid_train_step_-skipped_points)) = Vector<3>::Zero();
+  //     }
+  //   // }
+  //   // else {
+  //   //   skipped_points++;
+  //   // }
+  // }
 
   // Print Full Drone State
   // std::cout << quad_obs_.transpose() << std::endl;
@@ -411,10 +456,22 @@ bool QuadrotorEnvByDataTraj::getObs(Ref<Vector<>> obs) {
 }
 
 Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
+
+  if (log_positions) {
+    // Log the current position with a comma in between each value
+    std::ofstream logFile;
+    logFile.open("positions.csv", std::ios::app);
+    logFile << quad_state_.x(0) << "," << quad_state_.x(1) << std::endl;
+    logFile.close();
+  }
+
   // Print the time and the step
   mid_train_step_++;
-  // std::cout << "Taking Step: " << mid_train_step_ << std::endl;
-  // std::cout << "Time: " << cmd_.t << ", Step: " << mid_train_step_ << std::endl;
+
+  if (debug_time) {
+  std::cout << "Taking Step: " << mid_train_step_ << std::endl;
+  std::cout << "Time: " << cmd_.t << ", Step: " << mid_train_step_ << std::endl;
+  }
   // // Print out the trajectory
   // for (int i = 0; i < traj_.size(); i++){
   //   std::cout << "Trajectory Point " << i << ": " << traj_[i].transpose() << std::endl;
@@ -441,6 +498,9 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
   Matrix<3, 3> rot = quad_state_.q().toRotationMatrix();
   Scalar total_reward = 0.0;
 
+  Scalar pos_reward = 0.0;
+  Scalar vel_reward = 0.0;
+
   // New Reward Function, Trajectory Tracking Instead of comparing to goal state
   // print length of traj_
   // std::cout << "Trajectory Length: " << traj_.size() << std::endl;
@@ -462,6 +522,7 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     for (int i = 0; i < 3; i++){
       // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
       total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10;
+      pos_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10;
       if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10)){
         std::cout << "NAN" << std::endl;
       }
@@ -495,8 +556,11 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     // std::cout << "Desired Orientation: " << desired_orientation.transpose() << std::endl;
 
     // Normalize the orientation -> not necessary for euler angles
+    if (enable_orientation_reward) {
     current_orientation /= current_orientation.norm();
     desired_orientation /= desired_orientation.norm();
+    }
+
 
     // Apply reward function for orientation
     if (enable_orientation_reward) {
@@ -520,6 +584,7 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     for (int i = 7; i < 10; i++){
       // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
       total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10;
+      vel_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10;
       if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10)){
         std::cout << "NAN" << std::endl;
       }
@@ -595,20 +660,24 @@ Scalar QuadrotorEnvByDataTraj::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
 
     // - control action penalty
     Vector<4> hover_action;
-    hover_action << 9.8, 0, 0, 0;
+    hover_action << 9.8/4, 9.8/4, 9.8/4, 9.8/4;
     // act_reward is the L2 norm of the difference between the current action and the hover action
     Scalar act_reward = 10 * act_coeff_ * (quad_act_ - hover_action).norm();
     total_reward += act_reward;
 
     if (debug_actions) {
-      // // std::cout << "Total Reward: " << total_reward << std::endl;
       // Print out the action vector
       std::cout << "Action Vector: " << quad_act_.transpose() << std::endl;
       // Print out the action reward
       std::cout << "Action Reward: " << act_reward << std::endl;
-      std::cout << "Act Reward Could be: " << act_coeff_ * (hover_action - hover_action).norm() << std::endl;
     }
     
+    if (debug_total_reward) {
+    std::cout << "Total Reward: " << total_reward << std::endl;
+    std::cout << "Action Reward: " << act_reward << std::endl;
+    std::cout << "Position Reward: " << pos_reward << std::endl;
+    std::cout << "Velocity Reward: " << vel_reward << std::endl;
+    }
 
     return total_reward;
   }
@@ -675,6 +744,7 @@ bool QuadrotorEnvByDataTraj::isTerminalState(Scalar &reward) {
     reward = 0.0;
     return false;
   }
+
 }
 
 bool QuadrotorEnvByDataTraj::loadParam(const YAML::Node &cfg) {
