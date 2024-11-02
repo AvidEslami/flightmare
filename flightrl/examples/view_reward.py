@@ -50,7 +50,13 @@ if __name__ == "__main__":
     # logger_dir = "./saved/2024-10-22-09-53-22/" # Same as above but with 24000 steps, for some reason ep_len_mean was 49 instead of 74
     # logger_dir = "./saved/2024-10-22-19-00-55/" # Same as above but with nminibatches set to 2 instead of 1
     # logger_dir = "./saved/2024-10-22-21-00-58/" # Same as 10000 steps case except only 2000 iterations and 10* act pen instead of 100*
-    logger_dir = "./saved/2024-10-22-22-25-19/" # Above but 4000 iterations, 5* vel pen instead of 10*
+    # logger_dir = "./saved/2024-10-22-22-25-19/" # Above but 4000 iterations, 5* vel pen instead of 10*
+    # logger_dir = "./saved/2024-10-23-01-00-14/" # Tried above but 10000 iterations broke down
+
+    # logger_dir = "./saved/2024-10-29-19-18-12/" # Same as above but with softplus instead of relu, training was stable, but spinning is back
+    # logger_dir = "./saved/2024-10-29-19-18-12/" # Same as above but with more steps again? Drone wasn't spinning by the end of the training
+    logger_dir = "./saved/2024-10-29-20-54-11/" # 13530 steps, still softplus instead of relu, destruction became recoverable
+
 
     ppo_var_names = ["ep_reward_mean", "ep_len_mean", "policy_entropy"]
     ppo_y_labels = ["Reward", "Episode Length", "Policy Entropy"]
