@@ -55,8 +55,11 @@ if __name__ == "__main__":
 
     # logger_dir = "./saved/2024-10-29-19-18-12/" # Same as above but with softplus instead of relu, training was stable, but spinning is back
     # logger_dir = "./saved/2024-10-29-19-18-12/" # Same as above but with more steps again? Drone wasn't spinning by the end of the training
-    logger_dir = "./saved/2024-10-29-20-54-11/" # 13530 steps, still softplus instead of relu, destruction became recoverable
+    # logger_dir = "./saved/2024-10-29-20-54-11/" # 13530 steps, still softplus instead of relu, destruction became recoverable
 
+    # logger_dir = "./saved/2024-11-02-18-39-38/" # 1400 steps, same as above, for reward -4 flight path is relatively good
+    # logger_dir = "./saved/2024-11-03-15-13-17/" # Tried to replicate old setup, bad reward
+    logger_dir = "./saved/2024-11-03-16-01-42/" # Tried again
 
     ppo_var_names = ["ep_reward_mean", "ep_len_mean", "policy_entropy"]
     ppo_y_labels = ["Reward", "Episode Length", "Policy Entropy"]

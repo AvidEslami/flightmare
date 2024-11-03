@@ -24,7 +24,7 @@ float prog_view_horizon = 0.5f;
 float prog_train_horizon = 5.5f;
 // Store second last state and use it for computing bell curve rewards at terminal state
 // Vector<quadenv::kNObs> second_last_state;
-int log_positions_to_files = 1;
+int log_positions_to_files = 0;
 
 int prog_debug_actions = 0;
 int prog_debug_horizons = 0;
@@ -84,7 +84,7 @@ QuadrotorEnvByDataProg::QuadrotorEnvByDataProg(const std::string &cfg_path)
   // obs_dim_ = int(floor(3+3+3*50*0.25+3*50*0.25)); // Pos and Ori every 4 steps
 
   // When the trajectory is obvious:
-  obs_dim_ = quadenv::kNObs;
+  obs_dim_ = quadenv::kNObs + 3*10;
 
   act_dim_ = quadenv::kNAct;
 
@@ -137,7 +137,7 @@ bool QuadrotorEnvByDataProg::reset(Ref<Vector<>> obs, const bool random) {
     // std::uniform_int_distribution<int> data_file_dist(1, 3);
     // int data_file_choice = data_file_dist(random_gen_);
 
-    std::string trajPath;
+
     // if (data_file_choice == 1){
     //   trajPath = cirPath1;
     // }
@@ -147,8 +147,26 @@ bool QuadrotorEnvByDataProg::reset(Ref<Vector<>> obs, const bool random) {
     // else{
     //   trajPath = cirPath3;
     // }
+    std::string trajPathCcw;
+    std::string trajPathCw;
+    std::string trajPath;
 
-    trajPath = "/home/avidavid/Downloads/dummy_circle_path.csv";
+    trajPathCcw = "/home/avidavid/Downloads/dummy_circle_path_ccw.csv";
+    trajPathCw = "/home/avidavid/Downloads/dummy_circle_path_cw.csv";
+
+    // Pick trajPath = random between the Ccw and Cw
+    std::uniform_int_distribution<int> data_file_dist(0, 1);
+
+    // int data_file_choice = data_file_dist(random_gen_);
+    int data_file_choice = 0;
+
+
+    if (data_file_choice == 0){
+      trajPath = trajPathCcw;
+    }
+    else{
+      trajPath = trajPathCw;
+    }
 
     // if (data_file_choice == 1){
     //   trajPath = trajPath1;
@@ -187,7 +205,7 @@ bool QuadrotorEnvByDataProg::reset(Ref<Vector<>> obs, const bool random) {
     dataFile.clear();
     dataFile.seekg(0, std::ios::beg);
 
-    std::uniform_int_distribution<int> initial_point(2, number_of_lines-501);
+    std::uniform_int_distribution<int> initial_point(2, number_of_lines-((100*prog_train_horizon) + 1));
 
     int initial_point_index = initial_point(random_gen_);
     // int initial_point_index = 200;
@@ -377,22 +395,37 @@ bool QuadrotorEnvByDataProg::resetRange(Ref<Vector<>> obs, int lower_zbound, int
 // }
 
 bool QuadrotorEnvByDataProg::getObs(Ref<Vector<>> obs) {
-  quadrotor_ptr_->getState(&quad_state_);
+    quadrotor_ptr_->getState(&quad_state_);
 
-  // convert quaternion to euler angle
-  Vector<3> euler_zyx = quad_state_.q().toRotationMatrix().eulerAngles(2, 1, 0);
-  // quaternionToEuler(quad_state_.q(), euler);
-  quad_obs_ << quad_state_.p, euler_zyx, quad_state_.v, quad_state_.w;
+    // convert quaternion to euler angle
+    Vector<3> euler_zyx = quad_state_.q().toRotationMatrix().eulerAngles(2, 1, 0);
+    // quaternionToEuler(quad_state_.q(), euler);
+    quad_obs_ << quad_state_.p, euler_zyx, quad_state_.v, quad_state_.w;
 
-  obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
+    obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
 
-  if (prog_debug_observations){
-    // Print Full Observation 
-    std::cout << obs.transpose() << std::endl;
-    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
-  }
+    // Now append the next 10 x,y,z positions along the trajectory
+    for (int i = mid_train_step_; i < mid_train_step_ + 10; i++){
+        if (i < traj_.size()){
+            obs.segment<quadenv::kNPos>(quadenv::kNObs + 3*(i-mid_train_step_)) = traj_[i].segment<3>(0);
+        }
+        else{
+            obs.segment<quadenv::kNPos>(quadenv::kNObs + 3*(i-mid_train_step_)) = Vector<3>::Zero();
+        }
+    }
+    // New obs_dim is: 
 
-  return true;
+    if (prog_debug_observations){
+        // Print Full Observation 
+        std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+        std::cout << "Quad State:" << std::endl;
+        std::cout << quad_obs_.transpose() << std::endl;
+        std::cout << "Obs:" << std::endl;
+        std::cout << obs.transpose() << std::endl;
+        std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+    }
+
+    return true;
 
   // obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
   //   obs.segment<quadenv::kNObs>(quadenv::kObs + quadenv::kNObs) = goal_state_;
@@ -680,47 +713,9 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
 }
 
 bool QuadrotorEnvByDataProg::isTerminalState(Scalar &reward) {
-  // if ((((quad_state_.x.segment<quadenv::kNPos>(quadenv::kPos) -
-  //      goal_state_.segment<quadenv::kNPos>(quadenv::kPos))
-  //       .squaredNorm() < 0.1))) {
-  //       // return false;
-  //   // We want the quadrotor to terminate within 0.1m of the goal, and reward it immediately for doing so
-  //   // double dist = (quad_obs_.segment<quadenv::kNPos>(quadenv::kPos) - goal_state_.segment<quadenv::kNPos>(quadenv::kPos)).squaredNorm();
-  //   // double power = -0.5*std::pow(dist/0.5, 2);
-  //   // reward = 10.0*std::exp(power);
-  //   reward = 30.0;
-  //   // reward = 0;
-
-  //   // // Use a bell curve to reward the drone for having a velocity that is very close to the desired velocity
-  //   // // MAXIMUM REWARD FROM VELOCITY: 40.0, MINIMUM REWARD FROM VELOCITY: 0.0
-  //   double vel_dist = (quad_state_.x.segment<quadenv::kNLinVel>(quadenv::kLinVel) - goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel)).squaredNorm();
-  //   double vel_power = -0.5*std::pow(vel_dist/0.5, 2);
-  //   // reward += 40.0*std::exp(vel_power);
-
-
-  //   // Use a bell curve to reward the drone for having a terminal orientation that is very close to the desired orientation
-  //   // MAXIMUM REWARD FROM ORIENTATION: 40.0, MINIMUM REWARD FROM ORIENTATION: 0.0
-  //   double ori_dist = (quad_state_.x.segment<quadenv::kNOri>(quadenv::kOri) - goal_state_.segment<quadenv::kNOri>(quadenv::kOri)).squaredNorm();
-  //   double ori_power = -0.5*std::pow(ori_dist/0.5, 2);
-  //   // reward += 40.0*std::exp(ori_power);
-  //   // also print the distances
-  //   // Display Drone's velocity and goal velocity
-  //   // std::cout << "Drone's Velocity: " << quad_state_.x.segment<quadenv::kNLinVel>(quadenv::kLinVel).transpose() << std::endl;
-  //   // std::cout << "Goal Velocity: " << goal_state_.segment<quadenv::kNLinVel>(quadenv::kLinVel).transpose() << std::endl;
-  //   std::cout << "Orientation diff: " << ori_dist << std::endl;
-  //   // Display Velocity and Orientation Rewards
-  //   // std::cout << "Velocity Reward: " << 50.0*std::exp(vel_power) << std::endl;
-  //   std::cout << "Velocity diff: " << vel_dist << std::endl;
-  //   // std::cout << "Orientation Reward: " << 50.0*std::exp(ori_power) << std::endl;
-  //   // std::cout << "Terminal Reward: " << reward << std::endl;
-  //   return true;
-  // }
-  // else if ((quad_state_.x(QS::POSZ) <= -10.0)) {
-  //   reward = -10.5;
-  //   return true;
-  // }
-  // Once mid__
   int trajectory_length = traj_.size();
+
+  // If drone is below z=1 or z=9 then return true and give -10M reward
   // if ((mid_train_step_*2)-1 >= trajectory_length/2) { //Slightly off, should be a bit smaller
   int trajectory_length_boundary = int(prog_train_horizon*100)-(prog_view_horizon*100);
   if ((mid_train_step_*2)-1 >= trajectory_length_boundary) { //Slightly off, should be a bit smaller
@@ -732,6 +727,10 @@ bool QuadrotorEnvByDataProg::isTerminalState(Scalar &reward) {
     // reward = 5;
     return true;
   }
+//   else if ((quad_state_.x(QS::POSZ) <= 3) || (quad_state_.x(QS::POSZ) >= 7)) {
+//     reward = -10000000;
+//     return true;
+//   }
   else {
     reward = 0.0;
     return false;

@@ -24,7 +24,7 @@ float view_horizon = 0.5f;
 float train_horizon = 5.5f;
 // Store second last state and use it for computing bell curve rewards at terminal state
 // Vector<quadenv::kNObs> second_last_state;
-int log_positions = 1;
+int log_positions = 0;
 
 int debug_actions = 0;
 int debug_horizons = 0;
@@ -148,7 +148,7 @@ bool QuadrotorEnvByDataTraj::reset(Ref<Vector<>> obs, const bool random) {
     //   trajPath = cirPath3;
     // }
 
-    trajPath = "/home/avidavid/Downloads/dummy_circle_path.csv";
+    trajPath = "/home/avidavid/Downloads/dummy_circle_path_ccw.csv";
 
     // if (data_file_choice == 1){
     //   trajPath = trajPath1;

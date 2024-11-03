@@ -58,7 +58,8 @@ def main():
 
     env = wrapper.FlightEnvVec(QuadrotorEnv_Bydata_Prog(
         dump(cfg, Dumper=RoundTripDumper), False))
-    
+    env.max_episode_steps = 500
+    env._max_episode_steps = 500
     # env = DynamicGate_v0(dump(cfg["env"], Dumper=RoundTripDumper))
     # env = EnvWrapper(env)
 
@@ -86,7 +87,7 @@ def main():
             learning_rate=7e-4,
             vf_coef=0.5,
             max_grad_norm=0.5,
-            nminibatches=1,
+            nminibatches=1, # 2
             noptepochs=10,
             cliprange=0.2,
             verbose=1,
@@ -102,9 +103,12 @@ def main():
         # 10 zeros for nupdates to be 4000
         # 1000000000 is 2000 iterations and so
         # 2000000000 is 4000 iterations.
+
+        # 35 000 000 -> 1500 iterations -> 250 n_steps
+
         logger.configure(folder=saver.data_dir)
         model.learn( # : Last recorded was 250000000, followed by 600000000
-            total_timesteps=int(350000000),
+            total_timesteps=int(50000000),
             log_dir=saver.data_dir, logger=logger)
         model.save(saver.data_dir)
 
