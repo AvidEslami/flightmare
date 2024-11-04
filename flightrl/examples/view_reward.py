@@ -59,7 +59,12 @@ if __name__ == "__main__":
 
     # logger_dir = "./saved/2024-11-02-18-39-38/" # 1400 steps, same as above, for reward -4 flight path is relatively good
     # logger_dir = "./saved/2024-11-03-15-13-17/" # Tried to replicate old setup, bad reward
-    logger_dir = "./saved/2024-11-03-16-01-42/" # Tried again
+    # logger_dir = "./saved/2024-11-03-16-01-42/" # Tried again
+
+    # logger_dir = "./saved/2024-11-03-17-15-08/" # Working on traj
+    # logger_dir = "./saved/2024-11-03-18-05-14/" # working setup but on prog env, no extended input
+
+    logger_dir = "./saved/2024-11-03-18-39-41/" # 4000 steps on prog environment with no extended input, slightly shaky but flies
 
     ppo_var_names = ["ep_reward_mean", "ep_len_mean", "policy_entropy"]
     ppo_y_labels = ["Reward", "Episode Length", "Policy Entropy"]

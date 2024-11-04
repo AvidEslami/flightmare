@@ -76,7 +76,7 @@ def main():
             tensorboard_log=saver.data_dir,
             policy=MlpPolicy,  # check activation function
             policy_kwargs=dict(
-                net_arch=[dict(pi=[128, 128], vf=[128, 128])], act_fun=tf.nn.softplus),
+                net_arch=[dict(pi=[128, 128], vf=[128, 128])], act_fun=tf.nn.relu),
             env=env,
             lam=0.95,
             gamma=0.99,  # lower 0.9 ~ 0.99
@@ -108,7 +108,7 @@ def main():
 
         logger.configure(folder=saver.data_dir)
         model.learn( # : Last recorded was 250000000, followed by 600000000
-            total_timesteps=int(50000000),
+            total_timesteps=int(100000000),
             log_dir=saver.data_dir, logger=logger)
         model.save(saver.data_dir)
 

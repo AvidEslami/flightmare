@@ -84,7 +84,8 @@ QuadrotorEnvByDataProg::QuadrotorEnvByDataProg(const std::string &cfg_path)
   // obs_dim_ = int(floor(3+3+3*50*0.25+3*50*0.25)); // Pos and Ori every 4 steps
 
   // When the trajectory is obvious:
-  obs_dim_ = quadenv::kNObs + 3*10;
+//   obs_dim_ = quadenv::kNObs + 3*10;
+  obs_dim_ = quadenv::kNObs;
 
   act_dim_ = quadenv::kNAct;
 
@@ -405,14 +406,14 @@ bool QuadrotorEnvByDataProg::getObs(Ref<Vector<>> obs) {
     obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
 
     // Now append the next 10 x,y,z positions along the trajectory
-    for (int i = mid_train_step_; i < mid_train_step_ + 10; i++){
-        if (i < traj_.size()){
-            obs.segment<quadenv::kNPos>(quadenv::kNObs + 3*(i-mid_train_step_)) = traj_[i].segment<3>(0);
-        }
-        else{
-            obs.segment<quadenv::kNPos>(quadenv::kNObs + 3*(i-mid_train_step_)) = Vector<3>::Zero();
-        }
-    }
+    // for (int i = mid_train_step_; i < mid_train_step_ + 10; i++){
+    //     if (i < traj_.size()){
+    //         obs.segment<quadenv::kNPos>(quadenv::kNObs + 3*(i-mid_train_step_)) = traj_[i].segment<3>(0);
+    //     }
+    //     else{
+    //         obs.segment<quadenv::kNPos>(quadenv::kNObs + 3*(i-mid_train_step_)) = Vector<3>::Zero();
+    //     }
+    // }
     // New obs_dim is: 
 
     if (prog_debug_observations){
