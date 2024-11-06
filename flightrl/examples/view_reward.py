@@ -64,7 +64,10 @@ if __name__ == "__main__":
     # logger_dir = "./saved/2024-11-03-17-15-08/" # Working on traj
     # logger_dir = "./saved/2024-11-03-18-05-14/" # working setup but on prog env, no extended input
 
-    logger_dir = "./saved/2024-11-03-18-39-41/" # 4000 steps on prog environment with no extended input, slightly shaky but flies
+    # logger_dir = "./saved/2024-11-03-18-39-41/" # 4000 steps on prog environment with no extended input, slightly shaky but flies
+
+    # logger_dir = "./saved/2024-11-04-20-06-57/" # Bi directional, update sent in chat very shaky and underfit, but shows promise, 4000 steps, 5s rollouts nminibatches set to 1, act_coeff set to 10
+    logger_dir = "./saved/2024-11-04-21-10-23/" # Same but longer train 8000 steps (10 future positions as input)
 
     ppo_var_names = ["ep_reward_mean", "ep_len_mean", "policy_entropy"]
     ppo_y_labels = ["Reward", "Episode Length", "Policy Entropy"]
