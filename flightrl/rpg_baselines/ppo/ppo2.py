@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import tensorflow as tf
 from collections import deque
+import datetime
 #
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
 from stable_baselines.common.runners import AbstractEnvRunner
@@ -342,6 +343,9 @@ class PPO2(ActorCriticRLModel):
 
             n_updates = total_timesteps // self.n_batch
             
+            date = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+
+
             for update in range(1, n_updates + 1):
                 # Do the following except keyboard interrupt the learning process.
                 try:
@@ -430,6 +434,11 @@ class PPO2(ActorCriticRLModel):
                         # compatibility with callbacks that have no return statement.
                         if callback(locals(), globals()) is False:
                             break
+                    
+                    # save weights every 5 updates
+                    if update % 5 == 0:
+                        self.save(log_dir + "/checkpoints/" +f"{date}_Iteration" + "_{}".format(update))
+
                 except KeyboardInterrupt:
                     print("You have stopped the learning process by keyboard interrupt. Model Parameter is saved. \n")
                     # You can actually save files using the instance of self. save the model parameters. 
