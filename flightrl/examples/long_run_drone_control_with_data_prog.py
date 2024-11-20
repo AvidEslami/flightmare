@@ -58,8 +58,8 @@ def main():
 
     env = wrapper.FlightEnvVec(QuadrotorEnv_Bydata_Prog(
         dump(cfg, Dumper=RoundTripDumper), False))
-    env.max_episode_steps = 500
-    env._max_episode_steps = 500
+    env.max_episode_steps = 1000
+    env._max_episode_steps = 1000
     # env = DynamicGate_v0(dump(cfg["env"], Dumper=RoundTripDumper))
     # env = EnvWrapper(env)
 
@@ -81,10 +81,10 @@ def main():
             lam=0.95,
             gamma=0.99,  # lower 0.9 ~ 0.99
             # n_steps=math.floor(cfg['env']['max_time'] / cfg['env']['ctl_dt']),
-            n_steps=250,
+            n_steps=500,
             ent_coef=0.00,
             # learning_rate=5e-4,
-            learning_rate=5e-4,
+            learning_rate=7e-4,
             vf_coef=0.5,
             max_grad_norm=0.5,
             nminibatches=1, # 2

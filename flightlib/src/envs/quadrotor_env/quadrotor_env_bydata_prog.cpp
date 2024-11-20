@@ -21,13 +21,14 @@ QuadrotorEnvByDataProg::QuadrotorEnvByDataProg()
 // std::string cirPath3 = "/home/avidavid/Downloads/8m_circle.csv";
 
 float prog_view_horizon = 0.5f;
-float prog_train_horizon = 5.5f;
+float prog_train_horizon = 60.5f;
 // Store second last state and use it for computing bell curve rewards at terminal state
 // Vector<quadenv::kNObs> second_last_state;
 int log_positions_to_files = 0;
 
 int prog_debug_actions = 0;
 int prog_debug_horizons = 0;
+int prog_debug_positions = 0;
 int prog_debug_velocities = 0;
 int prog_debug_orientations = 0;
 int prog_debug_total_reward = 0;
@@ -35,9 +36,12 @@ int prog_debug_time = 0;
 int prog_debug_dynamics = 0;
 int prog_debug_observations = 0;
 
+int prog_debug_rollout_reward = 0;
+int start_at_start = 0;
 int add_random_noise_temp = 0;
 
 int prog_enable_orientation_reward = 0;
+int prog_enable_act_reward = 0;
 
 QuadrotorEnvByDataProg::QuadrotorEnvByDataProg(const std::string &cfg_path)
   : EnvBase(),
@@ -105,6 +109,9 @@ QuadrotorEnvByDataProg::QuadrotorEnvByDataProg(const std::string &cfg_path)
     logFile << "x,y,z" << std::endl;
     logFile.close();
   }
+  if (prog_debug_rollout_reward) {
+    std::cout << "Rollout Reward: " << std::endl;
+  }
 }
 
 QuadrotorEnvByDataProg::~QuadrotorEnvByDataProg() {}
@@ -158,8 +165,8 @@ bool QuadrotorEnvByDataProg::reset(Ref<Vector<>> obs, const bool random) {
     // Pick trajPath = random between the Ccw and Cw
     std::uniform_int_distribution<int> data_file_dist(0, 1);
 
-    int data_file_choice = data_file_dist(random_gen_);
-    // int data_file_choice = 0;
+    // int data_file_choice = data_file_dist(random_gen_);
+    int data_file_choice = 0;
 
 
     if (data_file_choice == 0){
@@ -206,9 +213,13 @@ bool QuadrotorEnvByDataProg::reset(Ref<Vector<>> obs, const bool random) {
     dataFile.clear();
     dataFile.seekg(0, std::ios::beg);
 
-    std::uniform_int_distribution<int> initial_point(2, number_of_lines-((100*prog_train_horizon) + 1));
+    // std::uniform_int_distribution<int> initial_point(2, number_of_lines-((100*prog_train_horizon) + 1));
+    std::uniform_int_distribution<int> initial_point(2, 3142);
 
     int initial_point_index = initial_point(random_gen_);
+    if (start_at_start){
+      initial_point_index = 2;
+    }
     // int initial_point_index = 200;
       
     int current_line = 0;
@@ -492,8 +503,25 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     logFile.close();
   }
 
-  // Print the time and the step
-  mid_train_step_++;
+  // // Print the time and the step
+  // mid_train_step_++;
+  int previous_step = mid_train_step_;
+
+  int closest_point_index;
+  Scalar closest_point_distance = 1000000.0;
+  // Only look at the next 30 points in the trajectory within the range of traj_
+  int closest_point_horizon = std::min(int(traj_.size()), previous_step + 30);
+  
+  for (int i = previous_step; i < closest_point_horizon; i++){
+    Scalar distance = (traj_[i].segment<3>(0) - quad_state_.x.segment<3>(0)).norm();
+    if (distance < closest_point_distance){
+      closest_point_distance = distance;
+      closest_point_index = i;
+    }
+  }
+
+  // mid_train_step_ = (closest_point_index+1)/2;
+  mid_train_step_ = closest_point_index;
 
   if (prog_debug_time) {
   std::cout << "Taking Step: " << mid_train_step_ << std::endl;
@@ -525,6 +553,15 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
   Matrix<3, 3> rot = quad_state_.q().toRotationMatrix();
   Scalar total_reward = 0.0;
 
+  // Progress Reward
+  if (mid_train_step_ - previous_step < 30) {
+    total_reward += (mid_train_step_ - previous_step)*0.001*10;
+  }
+  else {
+    // Shortcut Penalty
+    total_reward -= 0.1;
+  }
+  // std::cout << "Progress Reward: " << mid_train_step_ - previous_step << std::endl;
   Scalar pos_reward = 0.0;
   Scalar vel_reward = 0.0;
 
@@ -534,8 +571,10 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
   int trajectory_length = traj_.size();
   int trajectory_length_boundary = int(prog_train_horizon*100)-(prog_view_horizon*100);
   // if ((mid_train_step_*2)-1 < trajectory_length/2){
-  if ((mid_train_step_*2)-1 < trajectory_length_boundary){
-    int desired_pose_index = mid_train_step_*2 - 1;
+  if ((mid_train_step_) < trajectory_length_boundary){
+    // int desired_pose_index = mid_train_step_*2 - 1;
+    int desired_pose_index = closest_point_index;
+
     // Print current pose and desired pose
     // std::cout << "Current Pose: " << quad_state_.x.segment<10>(0).transpose() << std::endl;
     // std::cout << "Desired Pose: " << traj_[desired_pose_index].transpose() << std::endl;
@@ -553,8 +592,14 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
       if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10)){
         std::cout << "NAN" << std::endl;
       }
+
       // std::cout << (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ << std::endl;
       // total_reward += 0.01;
+    }
+    if (prog_debug_positions) {
+      std::cout << "Current Position: " << quad_state_.x.segment<3>(0).transpose() << std::endl;
+      std::cout << "Desired Position: " << traj_[desired_pose_index].segment<3>(0).transpose() << std::endl;
+      std::cout << "Position Reward: " << pos_reward << std::endl;
     }
     // for (int i = 3; i < 7; i++) {
     //   total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*10;
@@ -608,16 +653,20 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
       }
     }
 
-    for (int i = 7; i < 10; i++){
-      // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
-      total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*5;
-      vel_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*5;
-      if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*5)){
-        std::cout << "NAN" << std::endl;
-      }
-      // std::cout << (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ << std::endl;
-      // total_reward += 0.01;
-    }
+    // VELOCITY REWARD
+    // for (int i = 7; i < 10; i++){
+    //   // total_reward += (quad_state_(i) - desired_pose(i))*(quad_state_(i) - desired_pose(i)) * pos_coeff_;
+    //   total_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*5;
+    //   vel_reward += (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*5;
+    //   if (std::isnan((quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_*5)){
+    //     std::cout << "NAN" << std::endl;
+    //   }
+    //   // std::cout << (quad_state_.x(i) - traj_[desired_pose_index](i))*(quad_state_.x(i) - traj_[desired_pose_index](i)) * pos_coeff_ << std::endl;
+    //   // total_reward += 0.01;
+    // }
+
+
+
     // total_reward += (quad_state_.x(0) - traj_[desired_pose_index](0))*(quad_state_.x(0) - traj_[desired_pose_index](0)) * pos_coeff_ /10;
     // total_reward += (quad_state_.x(1) - traj_[desired_pose_index](1))*(quad_state_.x(1) - traj_[desired_pose_index](1)) * pos_coeff_ /10;
     // total_reward += (quad_state_.x(2) - traj_[desired_pose_index](2))*(quad_state_.x(2) - traj_[desired_pose_index](2)) * pos_coeff_ /10;
@@ -630,12 +679,12 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     // total_reward += (quad_state_.x(9) - traj_[desired_pose_index](9))*(quad_state_.x(9) - traj_[desired_pose_index](9)) * pos_coeff_ /10;
 
     // Clamp the reward to be between -5 and 5
-    if (total_reward > 3){
-      total_reward = 3;
-    }
-    else if (total_reward < -3){
-      total_reward = -3;
-    }
+    // if (total_reward > 3){
+    //   total_reward = 3;
+    // }
+    // else if (total_reward < -3){
+    //   total_reward = -3;
+    // }
     // std::cout << "Total Reward: " << total_reward << std::endl;
     // std::cout << "Current Position X: " << quad_state_.x(0) << std::endl;
     // std::cout << "Desired Position X: " << traj_[desired_pose_index](0) << std::endl;
@@ -674,7 +723,7 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     }
     // Print Current Time, Step, and trajectory length
     if (prog_debug_horizons) {
-      std::cout << "Time: " << cmd_.t << ", Step: " << mid_train_step_ << ", Trajectory Length: " << trajectory_length << std::endl;
+      std::cout << "Time: " << cmd_.t << ", Step: " << mid_train_step_ << ", Desired Index: " << desired_pose_index << ", Trajectory Length: " << trajectory_length << std::endl;
     }
     if (prog_debug_velocities) {
       // Display Drone's Velocity Magnitude
@@ -690,7 +739,9 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     hover_action << 9.8/4, 9.8/4, 9.8/4, 9.8/4;
     // act_reward is the L2 norm of the difference between the current action and the hover action
     Scalar act_reward = 10 * act_coeff_ * (quad_act_ - hover_action).norm();
-    total_reward += act_reward;
+    if (prog_enable_act_reward) {
+      total_reward += act_reward;
+    }
 
     if (prog_debug_actions) {
       // Print out the action vector
@@ -706,6 +757,20 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     std::cout << "Velocity Reward: " << vel_reward << std::endl;
     }
 
+    if (prog_debug_rollout_reward) {
+      // Log current reward to file
+      std::ofstream logFile;
+      logFile.open("rewards.csv", std::ios::app);
+      logFile << total_reward << std::endl;
+      logFile.close();
+      // std::cout << "Rollout Reward: " << rollout_reward << std::endl;
+    }
+
+    // Survival reward + 2*pos_coeff_*10
+
+    Scalar survival_reward = -2*pos_coeff_*10;
+    total_reward += survival_reward;
+
     return total_reward;
   }
   else {
@@ -719,24 +784,58 @@ bool QuadrotorEnvByDataProg::isTerminalState(Scalar &reward) {
 
   // If drone is below z=1 or z=9 then return true and give -10M reward
   // if ((mid_train_step_*2)-1 >= trajectory_length/2) { //Slightly off, should be a bit smaller
-  int trajectory_length_boundary = int(prog_train_horizon*100)-(prog_view_horizon*100);
-  if ((mid_train_step_*2)-1 >= trajectory_length_boundary) { //Slightly off, should be a bit smaller
+  // int trajectory_length_boundary = int(prog_train_horizon*100)-(prog_view_horizon*100);
+//   if ((mid_train_step_) >= trajectory_length_boundary) { //Slightly off, should be a bit smaller
+//     if (prog_debug_horizons){
+//       std::cout << "Reached End of Trajectory" << std::endl;
+//       std::cout << "Mid Train Step: " << mid_train_step_ << std::endl;
+//     }
+
+//     if (prog_debug_rollout_reward) {
+//       // Log to the file EOR
+//       std::ofstream logFile;
+//       logFile.open("rewards.csv", std::ios::app);
+//       logFile << "EOR" << std::endl;
+//       logFile.close();
+//     }
+//     // std::cout << "Full Trial Reward" << reward << std::endl;
+//     // reward = 5;
+//     return true;
+//   }
+// //   else if ((quad_state_.x(QS::POSZ) <= 3) || (quad_state_.x(QS::POSZ) >= 7)) {
+// //     reward = -10000000;
+// //     return true;
+// //   }
+//   else {
+//     reward = 0.0;
+//     return false;
+//   }
+
+  // If the drone is 2m away from the closest point in the trajectory, then return true
+
+  int closest_point_index = mid_train_step_;
+
+  Vector<3> current_position = quad_state_.x.segment<3>(0);
+  Vector<3> closest_point_position = traj_[closest_point_index].segment<3>(0);
+  Scalar distance = (current_position - closest_point_position).norm();
+  if (distance > 2) {
     if (prog_debug_horizons){
-      std::cout << "Reached End of Trajectory" << std::endl;
-      std::cout << "Mid Train Step: " << mid_train_step_ << std::endl;
+      std::cout << "Drone is 2m away from the closest point in the trajectory" << std::endl;
+      std::cout << "Distance: " << distance << std::endl;
+    }
+
+    if (prog_debug_rollout_reward) {
+      // Log to the file EOR
+      std::ofstream logFile;
+      logFile.open("rewards.csv", std::ios::app);
+      logFile << "EOR" << std::endl;
+      logFile.close();
     }
     // std::cout << "Full Trial Reward" << reward << std::endl;
     // reward = 5;
     return true;
   }
-//   else if ((quad_state_.x(QS::POSZ) <= 3) || (quad_state_.x(QS::POSZ) >= 7)) {
-//     reward = -10000000;
-//     return true;
-//   }
-  else {
-    reward = 0.0;
-    return false;
-  }
+  return false;
 
 }
 

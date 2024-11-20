@@ -67,10 +67,22 @@ if __name__ == "__main__":
     # logger_dir = "./saved/2024-11-03-18-39-41/" # 4000 steps on prog environment with no extended input, slightly shaky but flies
 
     # logger_dir = "./saved/2024-11-04-20-06-57/" # Bi directional, update sent in chat very shaky and underfit, but shows promise, 4000 steps, 5s rollouts nminibatches set to 1, act_coeff set to 10
-    logger_dir = "./saved/2024-11-04-21-10-23/" # Same but longer train 8000 steps (10 future positions as input)
+    # logger_dir = "./saved/2024-11-04-21-10-23/" # Same but longer train 8000 steps (10 future positions as input)
 
-    ppo_var_names = ["ep_reward_mean", "ep_len_mean", "policy_entropy"]
-    ppo_y_labels = ["Reward", "Episode Length", "Policy Entropy"]
+    # logger_dir = "./saved/2024-11-06-00-56-11/" # first iteration of prog reward
+
+
+    # logger_dir = "./saved/2024-11-12-23-05-23/" # Fixed bugs in progress reward and tuned it down, no action penalty, 4000 steps, unstability is noticed, approxkl spiked, some but less minor shortcuts, max reward was +0.1
+    # logger_dir = "./saved/2024-11-12-23-56-15/" # Same, but only CCW instead of bi directional, max reward was +0.18 , Note: these are 0.5f,5.5f horizons
+    # logger_dir = "./saved/2024-11-13-01-21-20/" # Same, but long distance -> 0.5,10.5, max reward was +0.225
+    # logger_dir = "./saved/2024-11-13-02-31-16/" # Same, but double distance -> 0.5,20.5 -> penalize skips of 30 steps?
+
+    # logger_dir = "./saved/2024-11-19-02-32-35/" # overnight
+    # logger_dir = "./saved/2024-11-19-18-56-24/" # garage
+    logger_dir = "./saved/2024-11-19-23-08-52/" # TRACKS CIRCLE, cut off at iteration 1000, lr 5e, pos rewards, cutoff at 2m away, ended at +40 reward, 250ms flights
+
+    ppo_var_names = ["ep_reward_mean", "ep_len_mean", "policy_entropy", "approxkl", "clipfrac"]
+    ppo_y_labels = ["Reward", "Episode Length", "Policy Entropy", "Approx KL", "Clip Fraction"]
     #
     sac_var_names = ["train_reward", "test_reward", "entropy"]
     sac_y_labels = ["Train Reward", "Test Reward", "Entropy"]
