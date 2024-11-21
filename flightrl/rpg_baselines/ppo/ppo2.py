@@ -1,4 +1,5 @@
 import time
+import csv
 #
 import gym
 import sys
@@ -52,7 +53,7 @@ class PPO2(ActorCriticRLModel):
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
         If None, the number of cpu of the current machine will be used.
     """
-    def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
+    def __init__(self, policy, env, n_save, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
                  full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
@@ -90,6 +91,8 @@ class PPO2(ActorCriticRLModel):
         self.value = None
         self.n_batch = None
         self.summary = None
+
+        self.n_save = n_save
 
         super().__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
                          _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
@@ -435,9 +438,18 @@ class PPO2(ActorCriticRLModel):
                         if callback(locals(), globals()) is False:
                             break
                     
-                    # save weights every 5 updates
-                    if update % 5 == 0:
+                    # save weights every n_save updates
+                    if (self.n_save != 0) and (update % self.n_save == 0):
                         self.save(log_dir + "/checkpoints/" +f"{date}_Iteration" + "_{}".format(update))
+
+                        ep_reward_mean = safe_mean([ep_info['r'] for ep_info in self.ep_info_buf])
+                        
+                        # absolute_path = os.path.abspath(file_path)
+                        # # Open the CSV file in append mode
+                        # with open(csv_file_path, mode='a', newline='') as csv_file:
+                        #     csv_writer = csv.writer(csv_file)
+                        #     # Write the file path as a new row
+                            # csv_writer.writerow([absolute_path, update, ep_reward_mean])
 
                 except KeyboardInterrupt:
                     print("You have stopped the learning process by keyboard interrupt. Model Parameter is saved. \n")

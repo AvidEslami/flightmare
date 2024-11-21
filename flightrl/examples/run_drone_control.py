@@ -86,6 +86,7 @@ def main():
             noptepochs=10,
             cliprange=0.2,
             verbose=1,
+            n_save=5
         )
 
         # tensorboard
