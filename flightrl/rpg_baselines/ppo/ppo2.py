@@ -1,12 +1,13 @@
 import time
+import datetime
 import csv
+import os
 #
 import gym
 import sys
 import numpy as np
 import tensorflow as tf
 from collections import deque
-import datetime
 #
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
 from stable_baselines.common.runners import AbstractEnvRunner
@@ -333,6 +334,22 @@ class PPO2(ActorCriticRLModel):
 
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
 
+        # create temporary csv file to store training data in 
+        date = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        temp_rel_path = "successes/Rewards_temp.csv"
+        reward_path = "successes/Rewards.csv"
+        temp_path = os.path.abspath(os.path.join(os.getcwd(), temp_rel_path))
+        reward_path = os.path.abspath(os.path.join(os.getcwd(), reward_path))
+        os.makedirs(os.path.dirname(temp_path), exist_ok=True)
+        os.makedirs(os.path.dirname(temp_path), exist_ok=True)
+
+        # initialize headers
+        cols = ["date", "n_updates", "ep_reward_mean"]
+        self.ensure_csv_has_header(temp_path, cols)
+        self.ensure_csv_has_header(reward_path, cols)
+
+
+
         with SetVerbosity(self.verbose), TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name, new_tb_log) \
                 as writer:
             self._setup_learn()
@@ -443,20 +460,92 @@ class PPO2(ActorCriticRLModel):
                         self.save(log_dir + "/checkpoints/" +f"{date}_Iteration" + "_{}".format(update))
 
                         ep_reward_mean = safe_mean([ep_info['r'] for ep_info in self.ep_info_buf])
-                        
-                        # absolute_path = os.path.abspath(file_path)
-                        # # Open the CSV file in append mode
-                        # with open(csv_file_path, mode='a', newline='') as csv_file:
-                        #     csv_writer = csv.writer(csv_file)
-                        #     # Write the file path as a new row
-                            # csv_writer.writerow([absolute_path, update, ep_reward_mean])
+
+                        # Open the CSV file in append mode
+                        with open(temp_rel_path, mode='a', newline='') as csv_file:
+                            csv_writer = csv.writer(csv_file)
+                            # Write the file path as a new row                            
+                            csv_writer.writerow([date, update, ep_reward_mean])
 
                 except KeyboardInterrupt:
                     print("You have stopped the learning process by keyboard interrupt. Model Parameter is saved. \n")
                     # You can actually save files using the instance of self. save the model parameters. 
                     self.save(log_dir + "_Iteration_{}".format(update))
+                    self.save_best_reward(temp_path, reward_path)
                     sys.exit()
+            self.save_best_reward(temp_path, reward_path)
             return self
+    
+    def ensure_csv_has_header(self, file_path, header):
+        # Check if the file exists and has content
+        if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+            # If the file doesn't exist or is empty, write the header
+            with open(file_path, mode='w', newline='') as csv_file:
+                csv_writer = csv.writer(csv_file)
+                csv_writer.writerow(header)
+            print(f"Header added to new or empty file: {file_path}")
+        else:
+            # Read the first row to check if the header exists
+            with open(file_path, mode='r', newline='') as csv_file:
+                csv_reader = csv.reader(csv_file)
+                first_row = next(csv_reader, None)
+            
+            # Compare the first row with the expected header
+            if first_row != header:
+                # Rewrite the file with the header
+                with open(file_path, mode='r', newline='') as csv_file:
+                    rows = list(csv.reader(csv_file))  # Read all rows
+                
+                with open(file_path, mode='w', newline='') as csv_file:
+                    csv_writer = csv.writer(csv_file)
+                    csv_writer.writerow(header)  # Write the header
+                    csv_writer.writerows(rows)   # Write the existing rows
+                print(f"Header added to file without header: {file_path}")
+            else:
+                print(f"File already contains the correct header: {file_path}")
+
+        
+    def save_best_reward(self, temp_path, reward_path):
+        # Initialize variables for the best reward
+        max_reward = float('-inf')  # Start with negative infinity to handle any reward value
+        max_row = None
+
+        # Read the CSV file and find the row with the highest reward
+        with open(temp_path, mode='r', newline='') as csv_file:
+            csv_reader = csv.reader(csv_file)
+            # Skip the header
+            header = next(csv_reader, None)
+
+            # find row with the highest reward
+            for row in csv_reader:
+                try:
+                    reward = float(row[2])  # Convert reward to a float
+                    if reward > max_reward:
+                        max_reward = reward
+                        max_row = row
+                except (IndexError, ValueError):
+                    # Handle rows with missing or invalid reward values
+                    continue
+
+        # Append the best reward row to the final CSV file, creating it if necessary
+        if max_row:
+            print("max_row", max_row)
+            # Ensure the directory exists
+            os.makedirs(os.path.dirname(reward_path), exist_ok=True)
+            
+            with open(reward_path, mode='a', newline='') as csv_file:
+                csv_writer = csv.writer(csv_file)
+                # Write the header if the file is empty
+                if os.path.getsize(reward_path) == 0 and header:
+                    csv_writer.writerow(header)
+                # Write the best row
+                csv_writer.writerow(max_row)
+
+        # Remove the temporary CSV file safely
+        try:
+            os.remove(temp_path)
+        except OSError as e:
+            print(f"Error deleting temporary file: {e}")
 
     def save(self, save_path, cloudpickle=False):
         data = {
