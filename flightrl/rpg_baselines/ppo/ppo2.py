@@ -54,7 +54,7 @@ class PPO2(ActorCriticRLModel):
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
         If None, the number of cpu of the current machine will be used.
     """
-    def __init__(self, policy, env, n_save, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
+    def __init__(self, policy, env, n_save, saved_parameters, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
                  full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
@@ -72,6 +72,9 @@ class PPO2(ActorCriticRLModel):
         self.noptepochs = noptepochs
         self.tensorboard_log = tensorboard_log
         self.full_tensorboard_log = full_tensorboard_log
+
+        self.n_save = n_save
+        self.saved_parameters = saved_parameters
 
         self.action_ph = None
         self.advs_ph = None
@@ -92,8 +95,6 @@ class PPO2(ActorCriticRLModel):
         self.value = None
         self.n_batch = None
         self.summary = None
-
-        self.n_save = n_save
 
         super().__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
                          _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
@@ -340,15 +341,8 @@ class PPO2(ActorCriticRLModel):
         reward_path = "successes/Rewards.csv"
         temp_path = os.path.abspath(os.path.join(os.getcwd(), temp_rel_path))
         reward_path = os.path.abspath(os.path.join(os.getcwd(), reward_path))
-        os.makedirs(os.path.dirname(temp_path), exist_ok=True)
-        os.makedirs(os.path.dirname(temp_path), exist_ok=True)
-
-        # initialize headers
-        cols = ["date", "n_updates", "ep_reward_mean"]
-        self.ensure_csv_has_header(temp_path, cols)
-        self.ensure_csv_has_header(reward_path, cols)
-
-
+        self.configure_csv(temp_path, self.saved_parameters)
+        self.configure_csv(reward_path, self.saved_parameters)
 
         with SetVerbosity(self.verbose), TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name, new_tb_log) \
                 as writer:
@@ -457,15 +451,42 @@ class PPO2(ActorCriticRLModel):
                     
                     # save weights every n_save updates
                     if (self.n_save != 0) and (update % self.n_save == 0):
-                        self.save(log_dir + "/checkpoints/" +f"{date}_Iteration" + "_{}".format(update))
+                        # save weights file
+                        weight_path = log_dir + "/checkpoints/" +f"{date}_Iteration" + "_{}".format(update)
+                        self.save(weight_path)
 
-                        ep_reward_mean = safe_mean([ep_info['r'] for ep_info in self.ep_info_buf])
-
-                        # Open the CSV file in append mode
-                        with open(temp_rel_path, mode='a', newline='') as csv_file:
+                        # save training data on temporary csv
+                        parameters = {
+                            "date": date,
+                            "filepath": weight_path,
+                            "gamma": self.gamma,
+                            "n_steps": self.n_steps,
+                            "vf_coef": self.vf_coef,
+                            "ent_coef": self.ent_coef,
+                            "max_grad_norm": self.max_grad_norm,
+                            "learning_rate": self.learning_rate,
+                            "lam": self.lam,
+                            "nminibatches": self.nminibatches,
+                            "noptepochs": self.noptepochs,
+                            "cliprange": self.cliprange,
+                            "cliprange_vf": self.cliprange_vf,
+                            "verbose": self.verbose,
+                            "policy": self.policy,
+                            "ep_reward_mean": safe_mean([ep_info['r'] for ep_info in self.ep_info_buf]) if len(self.ep_info_buf) > 0 else None,
+                            "serial_timesteps": update * self.n_steps,
+                            "n_updates": update,
+                            "total_timesteps": self.num_timesteps,
+                            "fps": fps,
+                            "explained_variance": explained_variance(values, returns),
+                            "ep_len_mean": safe_mean([ep_info['l'] for ep_info in self.ep_info_buf]) if len(self.ep_info_buf) > 0 else None,
+                            "time_elapsed": t_start - t_first_start,
+                            "true_reward": np.mean(true_reward)
+                        }
+                        with open(temp_path, mode='a', newline='') as csv_file:
                             csv_writer = csv.writer(csv_file)
-                            # Write the file path as a new row                            
-                            csv_writer.writerow([date, update, ep_reward_mean])
+                            row = [parameters[col] if col in parameters else None for col in self.saved_parameters]
+                            print(row)
+                            csv_writer.writerow(row)
 
                 except KeyboardInterrupt:
                     print("You have stopped the learning process by keyboard interrupt. Model Parameter is saved. \n")
@@ -473,38 +494,71 @@ class PPO2(ActorCriticRLModel):
                     self.save(log_dir + "_Iteration_{}".format(update))
                     self.save_best_reward(temp_path, reward_path)
                     sys.exit()
+            
             self.save_best_reward(temp_path, reward_path)
             return self
     
-    def ensure_csv_has_header(self, file_path, header):
-        # Check if the file exists and has content
+    def configure_csv(self, file_path, header):
+        # Define the list of valid parameters
+        parameter_list = [
+            "date", "filepath", "gamma", "n_steps", "vf_coef", "ent_coef", "max_grad_norm",
+            "learning_rate", "lam", "nminibatches", "noptepochs", "cliprange", "cliprange_vf",
+            "verbose", "policy", "ep_reward_mean", "serial_timesteps", "n_updates",
+            "total_timesteps", "fps", "explained_variance", "ep_len_mean", "time_elapsed",
+            "true_reward"
+        ]
+
+        # Check if the file exists and is not empty
         if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
             # If the file doesn't exist or is empty, write the header
             with open(file_path, mode='w', newline='') as csv_file:
                 csv_writer = csv.writer(csv_file)
-                csv_writer.writerow(header)
+                csv_writer.writerow(header)  # Write the header
             print(f"Header added to new or empty file: {file_path}")
-        else:
-            # Read the first row to check if the header exists
-            with open(file_path, mode='r', newline='') as csv_file:
-                csv_reader = csv.reader(csv_file)
-                first_row = next(csv_reader, None)
-            
-            # Compare the first row with the expected header
-            if first_row != header:
-                # Rewrite the file with the header
-                with open(file_path, mode='r', newline='') as csv_file:
-                    rows = list(csv.reader(csv_file))  # Read all rows
-                
-                with open(file_path, mode='w', newline='') as csv_file:
-                    csv_writer = csv.writer(csv_file)
-                    csv_writer.writerow(header)  # Write the header
-                    csv_writer.writerows(rows)   # Write the existing rows
-                print(f"Header added to file without header: {file_path}")
-            else:
-                print(f"File already contains the correct header: {file_path}")
+            return
 
-        
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        # Read the existing file
+        with open(file_path, mode='r', newline='') as csv_file:
+            csv_reader = csv.reader(csv_file)
+            rows = list(csv_reader)  # Read all rows
+
+        # Extract the current header and data rows
+        current_header = rows[0] if rows else []
+        data_rows = rows[1:] if len(rows) > 1 else []
+
+        # Check if the current header matches self.saved_parameters
+        if current_header == header:
+            print("File already contains the correct header.")
+            return
+
+        # Create a mapping from the current header to indices
+        header_index_map = {col: i for i, col in enumerate(current_header)}
+
+        # Rearrange rows to match the new header
+        new_data_rows = []
+        for row in data_rows:
+            new_row = []
+            for col in header:
+                if col in header_index_map:
+                    print("col: ", col)
+                    print("header_index_map[col]: ", header_index_map[col])
+                    print("row: ", row[header_index_map[col]])
+                    new_row.append(row[header_index_map[col]])
+                else:
+                    new_row.append(None)  # Add None for missing columns
+            new_data_rows.append(new_row)
+
+        # Write the updated CSV with the new header and rearranged rows
+        with open(file_path, mode='w', newline='') as csv_file:
+            csv_writer = csv.writer(csv_file)
+            csv_writer.writerow(header)  # Write the new header
+            csv_writer.writerows(new_data_rows)  # Write the rearranged rows
+
+        print(f"File updated with the correct header and rearranged rows: {file_path}")
+
     def save_best_reward(self, temp_path, reward_path):
         # Initialize variables for the best reward
         max_reward = float('-inf')  # Start with negative infinity to handle any reward value

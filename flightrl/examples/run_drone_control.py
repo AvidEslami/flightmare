@@ -86,7 +86,8 @@ def main():
             noptepochs=10,
             cliprange=0.2,
             verbose=1,
-            n_save=5
+            n_save=5,
+            saved_parameters=["n_updates", "gamma","filepath","ep_reward_mean"]
         )
 
         # tensorboard
