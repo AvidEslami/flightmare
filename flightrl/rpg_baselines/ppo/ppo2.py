@@ -2,6 +2,7 @@ import time
 import datetime
 import csv
 import os
+import shutil
 #
 import gym
 import sys
@@ -54,7 +55,7 @@ class PPO2(ActorCriticRLModel):
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
         If None, the number of cpu of the current machine will be used.
     """
-    def __init__(self, policy, env, n_save, saved_parameters, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
+    def __init__(self, policy, env, n_save, saved_parameters, only_save_best_reward, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
                  full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
@@ -74,7 +75,8 @@ class PPO2(ActorCriticRLModel):
         self.full_tensorboard_log = full_tensorboard_log
 
         self.n_save = n_save
-        self.saved_parameters = saved_parameters
+        self.saved_parameters = saved_parameters        # must include "filepath" and "ep_reward_mean" 
+        self.only_save_best_reward = only_save_best_reward
 
         self.action_ph = None
         self.advs_ph = None
@@ -449,16 +451,16 @@ class PPO2(ActorCriticRLModel):
                         if callback(locals(), globals()) is False:
                             break
                     
+                    weight_path = log_dir + "/checkpoints/" +f"{date}_Iteration" + "_{}".format(update)
                     # save weights every n_save updates
                     if (self.n_save != 0) and (update % self.n_save == 0):
-                        # save weights file
-                        weight_path = log_dir + "/checkpoints/" +f"{date}_Iteration" + "_{}".format(update)
+                        # save weights
                         self.save(weight_path)
 
                         # save training data on temporary csv
                         parameters = {
                             "date": date,
-                            "filepath": weight_path,
+                            "filepath": weight_path + ".zip",
                             "gamma": self.gamma,
                             "n_steps": self.n_steps,
                             "vf_coef": self.vf_coef,
@@ -485,13 +487,13 @@ class PPO2(ActorCriticRLModel):
                         with open(temp_path, mode='a', newline='') as csv_file:
                             csv_writer = csv.writer(csv_file)
                             row = [parameters[col] if col in parameters else None for col in self.saved_parameters]
-                            print(row)
                             csv_writer.writerow(row)
 
                 except KeyboardInterrupt:
-                    print("You have stopped the learning process by keyboard interrupt. Model Parameter is saved. \n")
+                    print("\nYou have stopped the learning process by keyboard interrupt. Model Parameter is saved. \n")
                     # You can actually save files using the instance of self. save the model parameters. 
-                    self.save(log_dir + "_Iteration_{}".format(update))
+                    # self.save(log_dir + "_Iteration_{}".format(update))
+                    self.save(weight_path)
                     self.save_best_reward(temp_path, reward_path)
                     sys.exit()
             
@@ -514,7 +516,6 @@ class PPO2(ActorCriticRLModel):
             with open(file_path, mode='w', newline='') as csv_file:
                 csv_writer = csv.writer(csv_file)
                 csv_writer.writerow(header)  # Write the header
-            print(f"Header added to new or empty file: {file_path}")
             return
 
         # Ensure the directory exists
@@ -543,9 +544,6 @@ class PPO2(ActorCriticRLModel):
             new_row = []
             for col in header:
                 if col in header_index_map:
-                    print("col: ", col)
-                    print("header_index_map[col]: ", header_index_map[col])
-                    print("row: ", row[header_index_map[col]])
                     new_row.append(row[header_index_map[col]])
                 else:
                     new_row.append(None)  # Add None for missing columns
@@ -561,45 +559,68 @@ class PPO2(ActorCriticRLModel):
 
     def save_best_reward(self, temp_path, reward_path):
         # Initialize variables for the best reward
-        max_reward = float('-inf')  # Start with negative infinity to handle any reward value
+        max_reward = float('-inf')
         max_row = None
 
         # Read the CSV file and find the row with the highest reward
-        with open(temp_path, mode='r', newline='') as csv_file:
-            csv_reader = csv.reader(csv_file)
-            # Skip the header
-            header = next(csv_reader, None)
+        try:
+            with open(temp_path, mode='r', newline='') as csv_file:
+                csv_reader = csv.reader(csv_file)
+                header = next(csv_reader, None)  # Skip the header
 
-            # find row with the highest reward
-            for row in csv_reader:
-                try:
-                    reward = float(row[2])  # Convert reward to a float
-                    if reward > max_reward:
-                        max_reward = reward
-                        max_row = row
-                except (IndexError, ValueError):
-                    # Handle rows with missing or invalid reward values
-                    continue
+                # Find the row with the highest reward
+                reward_index = self.saved_parameters.index("ep_reward_mean")
+                for row in csv_reader:
+                    try:
+                        reward = float(row[reward_index])
+                        if reward > max_reward:
+                            max_reward = reward
+                            max_row = row
+                    except (IndexError, ValueError):
+                        continue  # Skip invalid rows
+        except FileNotFoundError:
+            print(f"Temporary file not found: {temp_path}")
+            return
+    
+        # If configured, move the file and update the filepath
+        if self.only_save_best_reward and max_row:
+            try:
+                filepath_index = self.saved_parameters.index("filepath")
+                file_path = max_row[filepath_index] 
+                current_folder = os.path.dirname(file_path)
+                parent_folder = os.path.dirname(os.path.dirname(current_folder))  # two levels up
+                destination_path = os.path.join(parent_folder, os.path.basename(file_path))
 
-        # Append the best reward row to the final CSV file, creating it if necessary
-        if max_row:
-            print("max_row", max_row)
-            # Ensure the directory exists
-            os.makedirs(os.path.dirname(reward_path), exist_ok=True)
-            
-            with open(reward_path, mode='a', newline='') as csv_file:
-                csv_writer = csv.writer(csv_file)
-                # Write the header if the file is empty
-                if os.path.getsize(reward_path) == 0 and header:
-                    csv_writer.writerow(header)
-                # Write the best row
-                csv_writer.writerow(max_row)
+                # Move the file
+                shutil.move(file_path, destination_path)
+                # print(f"Moved file from {file_path} to {destination_path}")
+
+                # Delete the now-empty folder
+                shutil.rmtree(current_folder, ignore_errors=True)
+                max_row[filepath_index] = destination_path
+                print("Checkpoint folder deleted: ", current_folder)
+            except Exception as e:
+                print(f"Error handling best reward file: {e}")
 
         # Remove the temporary CSV file safely
         try:
             os.remove(temp_path)
+            print(f"Temporary file deleted: {temp_path}")
         except OSError as e:
             print(f"Error deleting temporary file: {e}")
+        
+        # Write the header and best row to the final CSV file
+        if max_row:
+            os.makedirs(os.path.dirname(reward_path), exist_ok=True)
+            try:
+                with open(reward_path, mode='a', newline='') as csv_file:
+                    csv_writer = csv.writer(csv_file)
+                    if os.path.getsize(reward_path) == 0 and header:
+                        csv_writer.writerow(header)  # Write header if file is empty
+                    csv_writer.writerow(max_row)  # Write the best row
+            except Exception as e:
+                print(f"Error writing to reward file: {e}")
+                return
 
     def save(self, save_path, cloudpickle=False):
         data = {

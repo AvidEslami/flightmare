@@ -87,7 +87,8 @@ def main():
             cliprange=0.2,
             verbose=1,
             n_save=5,
-            saved_parameters=["n_updates", "gamma","filepath","ep_reward_mean"]
+            saved_parameters=["ep_reward_mean", "gamma", "filepath"],
+            only_save_best_reward=True
         )
 
         # tensorboard
