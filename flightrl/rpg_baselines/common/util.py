@@ -11,6 +11,8 @@ class ConfigurationSaver:
         self._data_dir = log_dir + '/' + \
             datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         os.makedirs(self._data_dir)
+        os.makedirs(self._data_dir+"/checkpoints") # create weights folder
+
 
         # if save_items is not None:
         #     for save_item in save_items:

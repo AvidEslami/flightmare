@@ -90,6 +90,7 @@ def main():
             noptepochs=10,
             cliprange=0.2,
             verbose=1,
+            n_save=0
             # pretrained_weight="./saved/2024-01-26-20-44-04.zip"
         )
 
