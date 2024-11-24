@@ -15,8 +15,10 @@ Flightmare can be used for various applications, including path-planning, reinfo
 [![IMAGE ALT TEXT HERE](./docs/flightmare_main.png)](https://youtu.be/m9Mx1BCNGFU)
 
 ## Installation
-Installation instructions can be found in our [Wiki](https://github.com/uzh-rpg/flightmare/wiki).
-  
+<!-- Installation instructions can be found in our [Wiki](https://github.com/uzh-rpg/flightmare/wiki). -->
+Installation instructions can be found in our [Wiki](docs/wiki_home.md).
+
+
 ## Updates
  *  17.11.2020 [Spotlight](https://youtu.be/8JyrjPLt8wo) Talk at CoRL 2020 
  *  04.09.2020 Release Flightmare

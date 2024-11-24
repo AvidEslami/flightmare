@@ -88,7 +88,8 @@ def main():
             verbose=1,
             n_save=5,
             saved_parameters=["ep_reward_mean", "gamma", "filepath"],
-            only_save_best_reward=True
+            only_save_best_reward=True, 
+            reward_rel_path="successes/Rewards.csv"
         )
 
         # tensorboard

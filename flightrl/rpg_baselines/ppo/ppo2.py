@@ -55,7 +55,7 @@ class PPO2(ActorCriticRLModel):
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
         If None, the number of cpu of the current machine will be used.
     """
-    def __init__(self, policy, env, n_save, saved_parameters, only_save_best_reward, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
+    def __init__(self, policy, env, n_save, saved_parameters, only_save_best_reward, reward_rel_path, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
                  full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
@@ -339,10 +339,9 @@ class PPO2(ActorCriticRLModel):
 
         # create temporary csv file to store training data in 
         date = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        temp_rel_path = "successes/Rewards_temp.csv"
-        reward_path = "successes/Rewards.csv"
+        temp_rel_path = "successes/Training_temp.csv"
         temp_path = os.path.abspath(os.path.join(os.getcwd(), temp_rel_path))
-        reward_path = os.path.abspath(os.path.join(os.getcwd(), reward_path))
+        reward_path = os.path.abspath(os.path.join(os.getcwd(), reward_rel_path))
         self.configure_csv(temp_path, self.saved_parameters)
         self.configure_csv(reward_path, self.saved_parameters)
 
