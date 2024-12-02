@@ -24,7 +24,7 @@ float prog_view_horizon = 0.5f;
 float prog_train_horizon = 60.5f;
 // Store second last state and use it for computing bell curve rewards at terminal state
 // Vector<quadenv::kNObs> second_last_state;
-int log_positions_to_files = 0;
+int log_positions_to_files = 1;
 
 int prog_debug_actions = 0;
 int prog_debug_horizons = 0;
@@ -499,7 +499,7 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     // Log the current position with a comma in between each value
     std::ofstream logFile;
     logFile.open("positions.csv", std::ios::app);
-    logFile << quad_state_.x(0) << "," << quad_state_.x(1) << std::endl;
+    logFile << quad_state_.x(0) << "," << quad_state_.x(1) << "," << quad_state_.x(2) << std::endl;
     logFile.close();
   }
 
