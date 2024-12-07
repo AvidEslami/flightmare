@@ -159,8 +159,10 @@ bool QuadrotorEnvByDataProg::reset(Ref<Vector<>> obs, const bool random) {
     std::string trajPathCw;
     std::string trajPath;
 
-    trajPathCcw = "/home/avidavid/Downloads/dummy_circle_path_ccw.csv";
-    trajPathCw = "/home/avidavid/Downloads/dummy_circle_path_cw.csv";
+    // trajPathCcw = "/home/avidavid/Downloads/dummy_circle_path_ccw.csv";
+    // trajPathCw = "/home/avidavid/Downloads/dummy_circle_path_cw.csv";
+    // trajPath = "/home/avidavid/Downloads/vertical_circle_path_ccw.csv";
+    trajPath = "/home/avidavid/Downloads/dummy_circle_path_ccw.csv";
 
     // Pick trajPath = random between the Ccw and Cw
     std::uniform_int_distribution<int> data_file_dist(0, 1);
@@ -169,12 +171,12 @@ bool QuadrotorEnvByDataProg::reset(Ref<Vector<>> obs, const bool random) {
     int data_file_choice = 0;
 
 
-    if (data_file_choice == 0){
-      trajPath = trajPathCcw;
-    }
-    else{
-      trajPath = trajPathCw;
-    }
+    // if (data_file_choice == 0){
+    //   trajPath = trajPathCcw;
+    // }
+    // else{
+    //   trajPath = trajPathCw;
+    // }
 
     // if (data_file_choice == 1){
     //   trajPath = trajPath1;
@@ -416,9 +418,23 @@ bool QuadrotorEnvByDataProg::getObs(Ref<Vector<>> obs) {
 
     obs.segment<quadenv::kNObs>(quadenv::kObs) = quad_obs_;
 
+    // If three seconds have passed, command the drone to hover at the current position
+    // std::cout << "Command Time: " << cmd_.t << std::endl;
+    // int scaled_time = static_cast<int>(cmd_.t * 10); // Scale up to avoid floating-point
+    // // std::cout << "Scaled Time: " << scaled_time << std::endl;
+    // // std::cout << "Scaled Time is 300: " << (scaled_time == 300) << std::endl;
+    // if (scaled_time == 30) {
+    //     // std::cout << "Commanding Hover" << std::endl;
+    //     // std::cout << "Hover Position: " << quad_state_.x.segment<3>(0).transpose() << std::endl;
+    //     // We now change every point in the trajectory to 0,0,0
+    //     for (int i = 0; i < traj_.size(); i++){
+    //         traj_[i].segment<3>(0) = Vector<3>::Zero();
+    //     }
+    // }
+
     // Now append the next 10 x,y,z positions along the trajectory
     for (int i = mid_train_step_; i < mid_train_step_ + 30; i++){
-        if (i < traj_.size()){
+        if (cmd_.t <= 3.0){
             // Get relative position
             obs.segment<quadenv::kNPos>(quadenv::kNObs + 3*(i-mid_train_step_)) = traj_[i].segment<3>(0) - quad_state_.x.segment<3>(0);
         }
@@ -494,7 +510,8 @@ bool QuadrotorEnvByDataProg::getObs(Ref<Vector<>> obs) {
 }
 
 Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
-
+  int closest_point_index;
+  int previous_step;
   if (log_positions_to_files) {
     // Log the current position with a comma in between each value
     std::ofstream logFile;
@@ -502,26 +519,30 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
     logFile << quad_state_.x(0) << "," << quad_state_.x(1) << "," << quad_state_.x(2) << std::endl;
     logFile.close();
   }
+  if (cmd_.t <= 3.0) {
 
-  // // Print the time and the step
-  // mid_train_step_++;
-  int previous_step = mid_train_step_;
+    // // Print the time and the step
+    // mid_train_step_++;
 
-  int closest_point_index;
-  Scalar closest_point_distance = 1000000.0;
-  // Only look at the next 30 points in the trajectory within the range of traj_
-  int closest_point_horizon = std::min(int(traj_.size()), previous_step + 30);
-  
-  for (int i = previous_step; i < closest_point_horizon; i++){
-    Scalar distance = (traj_[i].segment<3>(0) - quad_state_.x.segment<3>(0)).norm();
-    if (distance < closest_point_distance){
-      closest_point_distance = distance;
-      closest_point_index = i;
+    previous_step = mid_train_step_;
+
+    // int closest_point_index;
+
+    Scalar closest_point_distance = 1000000.0;
+    // Only look at the next 30 points in the trajectory within the range of traj_
+    int closest_point_horizon = std::min(int(traj_.size()), previous_step + 30);
+    
+    for (int i = previous_step; i < closest_point_horizon; i++){
+      Scalar distance = (traj_[i].segment<3>(0) - quad_state_.x.segment<3>(0)).norm();
+      if (distance < closest_point_distance){
+        closest_point_distance = distance;
+        closest_point_index = i;
+      }
     }
-  }
 
-  // mid_train_step_ = (closest_point_index+1)/2;
-  mid_train_step_ = closest_point_index;
+    // mid_train_step_ = (closest_point_index+1)/2;
+    mid_train_step_ = closest_point_index;
+  }
 
   if (prog_debug_time) {
   std::cout << "Taking Step: " << mid_train_step_ << std::endl;
@@ -552,6 +573,18 @@ Scalar QuadrotorEnvByDataProg::step(const Ref<Vector<>> act, Ref<Vector<>> obs) 
 
   Matrix<3, 3> rot = quad_state_.q().toRotationMatrix();
   Scalar total_reward = 0.0;
+
+  // if 3 seconds have passed, command the drone to hover at the current position in the trajectory
+  // Reward is just a penalty for any velocity + 3.0 to keep the drone in the air
+  if (cmd_.t > 3.0) {
+    total_reward = -0.05 * quad_state_.x.segment<3>(3).norm();
+    // std::cout << "Total Reward: " << total_reward << std::endl;
+    // std::cout << "Drones Position: " << quad_state_.x.segment<3>(0).transpose() << std::endl;
+    // std::cout << "Goal Position: " << traj_[0].segment<3>(0).transpose() << std::endl;
+    total_reward = total_reward + 3.0;
+    return total_reward;
+  }
+
 
   // Progress Reward
   if (mid_train_step_ - previous_step < 30) {
@@ -818,6 +851,9 @@ bool QuadrotorEnvByDataProg::isTerminalState(Scalar &reward) {
   Vector<3> current_position = quad_state_.x.segment<3>(0);
   Vector<3> closest_point_position = traj_[closest_point_index].segment<3>(0);
   Scalar distance = (current_position - closest_point_position).norm();
+  if (cmd_.t >= 3.0) {
+    return false;
+  }
   if (distance > 2) {
     if (prog_debug_horizons){
       std::cout << "Drone is 2m away from the closest point in the trajectory" << std::endl;

@@ -315,6 +315,8 @@ Scalar QuadrotorEnv::step(const Ref<Vector<>> act, Ref<Vector<>> obs) {
   // print the quad_act_
   std::cout << "Commanded Thrusts: " << quad_act_.transpose() << std::endl;
   std::cout << "act" << act.transpose() << std::endl;
+  std::cout << "act_std_" << act_std_.transpose() << std::endl;
+  std::cout << "act_mean_" << act_mean_.transpose() << std::endl;
 
   // simulate quadrotor
   quadrotor_ptr_->run(cmd_, sim_dt_);
