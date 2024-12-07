@@ -10,6 +10,7 @@
 #include "flightlib/envs/quadrotor_env/quadrotor_hover_env.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_continuous_env.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_env_bydata_traj.hpp"
+#include "flightlib/envs/quadrotor_env/quadrotor_env_bydata_prog.hpp"
 #include "flightlib/envs/quadrotor_env/quadrotor_env_bydata.hpp"
 #include "flightlib/envs/test_env.hpp"
 #include "flightlib/envs/vec_env.hpp"
@@ -109,6 +110,28 @@ PYBIND11_MODULE(flightgym, m) {
     .def("getExtraInfoNames", &VecEnv<QuadrotorEnvByDataTraj>::getExtraInfoNames)
     // .def("getEpisodeLength", &VecEnv<QuadrotorEnvByDataTraj>::getEpisodeLength)
     .def("__repr__", [](const VecEnv<QuadrotorEnvByDataTraj>& a) {
+      return "RPG Continuous Test Environment";
+    });
+
+  py::class_<VecEnv<QuadrotorEnvByDataProg>>(m, "QuadrotorEnv_Bydata_Prog")
+    .def(py::init<>())
+    .def(py::init<const std::string&>())
+    .def(py::init<const std::string&, const bool>())
+    .def("reset", &VecEnv<QuadrotorEnvByDataProg>::reset)
+    .def("step", &VecEnv<QuadrotorEnvByDataProg>::step)
+    .def("testStep", &VecEnv<QuadrotorEnvByDataProg>::testStep)
+    .def("setSeed", &VecEnv<QuadrotorEnvByDataProg>::setSeed)
+    .def("close", &VecEnv<QuadrotorEnvByDataProg>::close)
+    .def("isTerminalState", &VecEnv<QuadrotorEnvByDataProg>::isTerminalState)
+    .def("curriculumUpdate", &VecEnv<QuadrotorEnvByDataProg>::curriculumUpdate)
+    .def("connectUnity", &VecEnv<QuadrotorEnvByDataProg>::connectUnity)
+    .def("disconnectUnity", &VecEnv<QuadrotorEnvByDataProg>::disconnectUnity)
+    .def("getNumOfEnvs", &VecEnv<QuadrotorEnvByDataProg>::getNumOfEnvs)
+    .def("getObsDim", &VecEnv<QuadrotorEnvByDataProg>::getObsDim)
+    .def("getActDim", &VecEnv<QuadrotorEnvByDataProg>::getActDim)
+    .def("getExtraInfoNames", &VecEnv<QuadrotorEnvByDataProg>::getExtraInfoNames)
+    // .def("getEpisodeLength", &VecEnv<QuadrotorEnvByDataProg>::getEpisodeLength)
+    .def("__repr__", [](const VecEnv<QuadrotorEnvByDataProg>& a) {
       return "RPG Continuous Test Environment";
     });
 

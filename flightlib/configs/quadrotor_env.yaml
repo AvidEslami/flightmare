@@ -1,11 +1,11 @@
 quadrotor_env:
    camera: no
    sim_dt: 0.02 
-   max_t: 5.0
+   max_t: 20.0
    add_camera: yes
 
 quadrotor_dynamics:
-  mass: 1.015
+  mass: 1.0
   arm_l: 0.17
   motor_omega_min: 150.0 # motor rpm min
   motor_omega_max: 3000.0 # motor rpm max
