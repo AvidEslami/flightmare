@@ -35,7 +35,6 @@ int prog_debug_total_reward = 0;
 int prog_debug_time = 0;
 int prog_debug_dynamics = 0;
 int prog_debug_observations = 0;
-int prog_debug_dynamics = 1;
 
 int prog_debug_rollout_reward = 0;
 int start_at_start = 0;
@@ -66,10 +65,10 @@ QuadrotorEnvByDataProg::QuadrotorEnvByDataProg(const std::string &cfg_path)
   dynamics.updateParams(cfg_);
   quadrotor_ptr_->updateDynamics(dynamics);
 
-  if (prog_debug_dynamics) {
-    std::cout << "Quadrotor dynamics: " << std::endl;
-    std::cout << dynamics << std::endl;
-  }
+  // if (prog_debug_dynamics) {
+  //   std::cout << "Quadrotor dynamics: " << std::endl;
+  //   std::cout << dynamics << std::endl;
+  // }
 
   // define a bounding box
   world_box_ << -50, 50, -50, 50, -50, 50;
