@@ -35,6 +35,7 @@ int prog_debug_total_reward = 0;
 int prog_debug_time = 0;
 int prog_debug_dynamics = 0;
 int prog_debug_observations = 0;
+int prog_debug_dynamics = 1;
 
 int prog_debug_rollout_reward = 0;
 int start_at_start = 0;
@@ -123,6 +124,12 @@ bool QuadrotorEnvByDataProg::reset(Ref<Vector<>> obs, const bool random) {
   quad_act_.setZero();
   mid_train_step_ = 0;
   traj_.clear();
+
+  // Print the rollout dynamics
+  if (prog_debug_dynamics) {
+  std::cout << "Rollout Dynamics: " << std::endl;
+  std::cout << quadrotor_ptr_->getDynamics() << std::endl;
+  }
 
   if (random) {
     // randomly reset the quadrotor state
