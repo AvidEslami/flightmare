@@ -80,6 +80,7 @@ class QuadrotorEnvByDataProg final : public EnvBase {
   // Store a trajectory as a list of states (pos, ori, lin_vel -> 10 elements)
   std::vector<Vector<10>> traj_;
   int mid_train_step_;
+  QuadrotorDynamics original_dynamics_;
   
 
   // reward function design (for model-free reinforcement learning)

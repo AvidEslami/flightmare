@@ -107,10 +107,11 @@ def main():
         # 35 000 000 -> 1500 iterations -> 250 n_steps
 
         # 100 000 000 -> 4000 iterations -> 250 n_steps
+        # total_timesteps=int(200000000), # 200000000 is 8000 iterations
 
         logger.configure(folder=saver.data_dir)
         model.learn( # : Last recorded was 250000000, followed by 600000000
-            total_timesteps=int(200000000),
+            total_timesteps=int(400000000),
             log_dir=saver.data_dir, logger=logger)
         model.save(saver.data_dir)
 

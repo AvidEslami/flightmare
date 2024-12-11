@@ -33,7 +33,7 @@ int prog_debug_velocities = 0;
 int prog_debug_orientations = 0;
 int prog_debug_total_reward = 0;
 int prog_debug_time = 0;
-int prog_debug_dynamics = 0;
+int prog_debug_dynamics = 1;
 int prog_debug_observations = 0;
 
 int prog_debug_rollout_reward = 0;
@@ -42,6 +42,7 @@ int add_random_noise_temp = 0;
 
 int prog_enable_orientation_reward = 0;
 int prog_enable_act_reward = 0;
+int prog_enable_dynamics_randomization = 0;
 
 QuadrotorEnvByDataProg::QuadrotorEnvByDataProg(const std::string &cfg_path)
   : EnvBase(),
@@ -64,6 +65,8 @@ QuadrotorEnvByDataProg::QuadrotorEnvByDataProg(const std::string &cfg_path)
   QuadrotorDynamics dynamics;
   dynamics.updateParams(cfg_);
   quadrotor_ptr_->updateDynamics(dynamics);
+
+  original_dynamics_ = dynamics;
 
   // if (prog_debug_dynamics) {
   //   std::cout << "Quadrotor dynamics: " << std::endl;
@@ -123,6 +126,30 @@ bool QuadrotorEnvByDataProg::reset(Ref<Vector<>> obs, const bool random) {
   quad_act_.setZero();
   mid_train_step_ = 0;
   traj_.clear();
+
+  // If we want to randomize the dynamics load the parameters from quadrotor_ptr_
+  // Then randomly change the parameters by -15% to 15%
+  if (prog_enable_dynamics_randomization) {
+    QuadrotorDynamics dynamics = original_dynamics_;
+    // std::cout << "Original Dynamics: " << std::endl;
+    // std::cout << dynamics << std::endl;
+    // Randomly change the parameters by -15% to 15%
+    std::uniform_real_distribution<Scalar> random_dist(-0.15, 0.15);    
+    // Now create new quadrotor_dynamics
+    // mass
+    // arm_l
+    // motor_tau
+    // And add 20% noise to each of them
+    QuadrotorDynamics new_dynamics;
+    new_dynamics.setMass(dynamics.getMass() + dynamics.getMass()*random_dist(random_gen_));
+    new_dynamics.setArmLength(dynamics.getArmLength() + dynamics.getArmLength()*random_dist(random_gen_));
+    new_dynamics.setMotortauInv(dynamics.getMotorTauInv() + dynamics.getMotorTauInv()*random_dist(random_gen_));
+
+    quadrotor_ptr_->updateDynamics(new_dynamics);
+
+    // std::cout << "Randomized Dynamics: " << std::endl;
+    // std::cout << dynamics << std::endl;
+  }
 
   // Print the rollout dynamics
   if (prog_debug_dynamics) {
