@@ -77,6 +77,7 @@ class QuadrotorEnv final : public EnvBase {
   // observations and actions (for RL)
   Vector<quadenv::kNObs> quad_obs_;
   Vector<quadenv::kNAct> quad_act_;
+  QuadrotorDynamics original_dynamics_;
 
   // reward function design (for model-free reinforcement learning)
   Vector<quadenv::kNObs> goal_state_;

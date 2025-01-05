@@ -124,9 +124,28 @@ Vector<4> QuadrotorDynamics::motorThrustToOmega(
 }
 
 Matrix<4, 4> QuadrotorDynamics::getAllocationMatrix() const {
-  return (Matrix<4, 4>() << Vector<4>::Ones().transpose(), t_BM_.topRows<2>(),
-          kappa_ * Vector<4>(1, -1, 1, -1).transpose())
-    .finished();
+  // Print out the allocation matrix
+  // std::cout << "Allocation Matrix: " << std::endl;
+  // std::cout << (Matrix<4, 4>() << Vector<4>::Ones().transpose(), t_BM_.topRows<2>(),
+  //               kappa_ * Vector<4>(1, -1, 1, -1).transpose())
+  //   .finished()
+  //   << std::endl;
+
+  // return (Matrix<4, 4>() << Vector<4>::Ones().transpose(), t_BM_.topRows<2>(),
+  //         kappa_ * Vector<4>(1, -1, 1, -1).transpose())
+  //   .finished();
+
+  // New allocation matrix should be the following:
+//   Allocation Matrix: 
+// 1      1      1      1
+// -0.1   0.1    -0.1   0.1
+// -0.075 0.075  0.075  -0.075
+// -0.022 -0.022 0.022  0.022
+// hard coded for now without using t_BM_ just raw values
+  std::cout << "Allocation Matrix: " << std::endl;
+  std::cout << (Matrix<4, 4>() << Vector<4>::Ones().transpose(), -0.1, 0.1, -0.1, 0.1, -0.075, 0.075, 0.075, -0.075, -0.022, -0.022, 0.022, 0.022).finished() << std::endl;
+  return (Matrix<4, 4>() << Vector<4>::Ones().transpose(), -0.1, 0.1, -0.1, 0.1, -0.075, 0.075, 0.075, -0.075, -0.022, -0.022, 0.022, 0.022).finished();
+
 }
 
 bool QuadrotorDynamics::setMass(const Scalar mass) {
@@ -190,7 +209,10 @@ bool QuadrotorDynamics::updateInertiaMarix() {
   if (!valid()) return false;
   t_BM_ = arm_l_ * sqrt(0.5) *
           (Matrix<3, 4>() << 1, -1, -1, 1, -1, -1, 1, 1, 0, 0, 0, 0).finished();
-  J_ = mass_ / 12.0 * arm_l_ * arm_l_ * Vector<3>(4.5, 4.5, 7).asDiagonal();
+  // J_ = mass_ / 12.0 * arm_l_ * arm_l_ * Vector<3>(4.5, 4.5, 7).asDiagonal();
+  // J_inv_ = J_.inverse();
+  // We want the inertia matrix values to be [0.0025, 0.0021, 0.0043], hard coded for now
+  J_ = Vector<3>(0.0025, 0.0021, 0.0043).asDiagonal();
   J_inv_ = J_.inverse();
   return true;
 }

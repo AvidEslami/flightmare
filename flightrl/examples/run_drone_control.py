@@ -58,6 +58,8 @@ def main():
 
     env = wrapper.FlightEnvVec(QuadrotorEnv_v1(
         dump(cfg, Dumper=RoundTripDumper), False))
+    env.max_episode_steps = 400
+    env._max_episode_steps = 400
 
     # set random seed
     configure_random_seed(args.seed, env=env)
@@ -99,7 +101,7 @@ def main():
         # 2000000000 is 4000 iterations.
         logger.configure(folder=saver.data_dir)
         model.learn(
-            total_timesteps=int(25000000),
+            total_timesteps=int(37500000),
             log_dir=saver.data_dir, logger=logger)
         model.save(saver.data_dir)
 

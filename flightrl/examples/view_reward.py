@@ -81,9 +81,14 @@ if __name__ == "__main__":
     # logger_dir = "./saved/2024-11-19-18-56-24/" # garage
     # logger_dir = "./saved/2024-11-19-23-08-52/" # TRACKS CIRCLE, cut off at iteration 1000, lr 5e, pos rewards, cutoff at 2m away, ended at +40 reward, 250ms flights
     # logger_dir = "./saved/2024-12-01-20-33-00/" # less underfit
+    
     # logger_dir = "./saved/2024-12-10-02-52-49/" # Same circle track environment +- 15% dynamics randomizations
+    # logger_dir = "./saved/2024-12-10-10-16-31/" # Same circle track environment +- 15%, trained for 13k iterations
 
-    logger_dir = "./saved/2024-12-10-10-16-31/" # Same circle track environment +- 15%, trained for 13k iterations
+    # logger_dir = "./saved/2025-01-05-04-16-55/" # Kingfisher dynamics, hover environment, default act_coeff_ stable in flightmare, unstable in rotorS
+    logger_dir = "./saved/2025-01-05-04-26-34/" # Kingfisher dynamics, hover environment, act_coeff_10, stable in flightmare, unstable in rotorS
+    # logger_dir = "./saved/2025-01-05-04-48-28/" # Same as above, 100hz instead of 50hz
+    
 
 
     ppo_var_names = ["ep_reward_mean", "ep_len_mean", "policy_entropy", "approxkl", "clipfrac"]

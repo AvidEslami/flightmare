@@ -42,7 +42,7 @@ int add_random_noise_temp = 0;
 
 int prog_enable_orientation_reward = 0;
 int prog_enable_act_reward = 0;
-int prog_enable_dynamics_randomization = 0;
+int prog_enable_dynamics_randomization = 1;
 
 QuadrotorEnvByDataProg::QuadrotorEnvByDataProg(const std::string &cfg_path)
   : EnvBase(),
