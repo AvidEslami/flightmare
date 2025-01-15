@@ -51,16 +51,34 @@ bool Quadrotor::run(const Scalar ctl_dt) {
     runMotors(sim_dt, motor_thrusts_des);
     // motor_thrusts_ = cmd_.thrusts;
 
-    const Vector<4> force_torques = B_allocation_ * motor_thrusts_;
+    // const Vector<4> force_torques = B_allocation_ * motor_thrusts_;
+
+    // // Compute linear acceleration and body torque
+    // const Vector<3> force(0.0, 0.0, force_torques[0]);
+    // state_.a = state_.q() * force * 1.0 / dynamics_.getMass() + gz_;
+
+    // // compute body torque
+    // state_.tau = force_torques.segment<3>(1);
+
+    // // dynamics integration
+    // integrator_ptr_->step(state_.x, sim_dt, next_state.x);
 
     // Compute linear acceleration and body torque
-    const Vector<3> force(0.0, 0.0, force_torques[0]);
-    state_.a = state_.q() * force * 1.0 / dynamics_.getMass() + gz_;
+    const Vector<4> force_torques = B_allocation_ * motor_thrusts_;
 
-    // compute body torque
+    // Convert quaternion to rotation matrix
+    const Matrix<3, 3> R = state_.q().toRotationMatrix();
+
+    // Extract force (assume z-direction thrust)
+    const Vector<3> force(0.0, 0.0, force_torques[0]);
+
+    // Compute linear acceleration using rotation matrix
+    state_.a = R * force * (1.0 / dynamics_.getMass()) + gz_;
+
+    // Compute body torque
     state_.tau = force_torques.segment<3>(1);
 
-    // dynamics integration
+    // Dynamics integration
     integrator_ptr_->step(state_.x, sim_dt, next_state.x);
 
     // update state and sim time

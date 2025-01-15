@@ -6,9 +6,9 @@ QuadrotorEnv::QuadrotorEnv()
   : QuadrotorEnv(getenv("FLIGHTMARE_PATH") +
                  std::string("/flightlib/configs/quadrotor_env_kingfisher.yaml")) {}
 
-int debug_hover_commands = 1;
-int hover_dynamics_randomization = 0;
-int hover_debug_dynamics = 1;
+int debug_hover_commands = 0;
+int hover_dynamics_randomization = 1;
+int hover_debug_dynamics = 0;
 
 QuadrotorEnv::QuadrotorEnv(const std::string &cfg_path)
   : EnvBase(),
@@ -70,7 +70,7 @@ bool QuadrotorEnv::reset(Ref<Vector<>> obs, const bool random) {
     // std::cout << "Original Dynamics: " << std::endl;
     // std::cout << dynamics << std::endl;
     // Randomly change the parameters by -15% to 15%
-    std::uniform_real_distribution<Scalar> random_dist(-0.10, 0.10);    
+    std::uniform_real_distribution<Scalar> random_dist(-0.20, 0.20);    
     // Now create new quadrotor_dynamics
     // mass
     // arm_l

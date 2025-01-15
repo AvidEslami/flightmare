@@ -15,11 +15,13 @@ QuadrotorDynamics::QuadrotorDynamics(const Scalar mass, const Scalar arm_l)
     motor_tau_inv_(1.0 / 0.05),
     thrust_map_(1.3298253500372892e-06, 0.0038360810526746033,
                 -1.7689986848125325),
-    kappa_(0.016),
+    kappa_(0.022),
     thrust_min_(0.0),
-    thrust_max_(motor_omega_max_ * motor_omega_max_ * thrust_map_(0) +
-                motor_omega_max_ * thrust_map_(1) + thrust_map_(2)),
-    omega_max_(Vector<3>::Constant(6.0)) {}
+    thrust_max_(8.5), omega_max_(Vector<3>::Constant(6.0)) {}
+    // thrust_max_(motor_omega_max_ * motor_omega_max_ * thrust_map_(0) +
+    //             motor_omega_max_ * thrust_map_(1) + thrust_map_(2)),
+    // omega_max_(Vector<3>::Constant(6.0)) {}
+    // Hardcode set thrust_max_ to 8.5
 
 QuadrotorDynamics::~QuadrotorDynamics() {}
 
@@ -142,9 +144,13 @@ Matrix<4, 4> QuadrotorDynamics::getAllocationMatrix() const {
 // -0.075 0.075  0.075  -0.075
 // -0.022 -0.022 0.022  0.022
 // hard coded for now without using t_BM_ just raw values
-  std::cout << "Allocation Matrix: " << std::endl;
-  std::cout << (Matrix<4, 4>() << Vector<4>::Ones().transpose(), -0.1, 0.1, -0.1, 0.1, -0.075, 0.075, 0.075, -0.075, -0.022, -0.022, 0.022, 0.022).finished() << std::endl;
-  return (Matrix<4, 4>() << Vector<4>::Ones().transpose(), -0.1, 0.1, -0.1, 0.1, -0.075, 0.075, 0.075, -0.075, -0.022, -0.022, 0.022, 0.022).finished();
+
+  // std::cout << "Allocation Matrix: " << std::endl;
+  float offset_ratio = arm_l_ - 0.17;
+  offset_ratio = offset_ratio / arm_l_;
+  float offset_multiplier = 1.0 - offset_ratio;
+  // std::cout << (Matrix<4, 4>() << Vector<4>::Ones().transpose(), -0.1*offset_multiplier, 0.1*offset_multiplier, -0.1*offset_multiplier, 0.1*offset_multiplier, -0.075*offset_multiplier, 0.075*offset_multiplier, 0.075*offset_multiplier, -0.075*offset_multiplier, -0.022*offset_multiplier, -0.022*offset_multiplier, 0.022*offset_multiplier, 0.022*offset_multiplier).finished() << std::endl;
+  return (Matrix<4, 4>() << Vector<4>::Ones().transpose(), -0.1*offset_multiplier, 0.1*offset_multiplier, -0.1*offset_multiplier, 0.1*offset_multiplier, -0.075*offset_multiplier, 0.075*offset_multiplier, 0.075*offset_multiplier, -0.075*offset_multiplier, -0.022*offset_multiplier, -0.022*offset_multiplier, 0.022*offset_multiplier, 0.022*offset_multiplier).finished();
 
 }
 
@@ -212,7 +218,10 @@ bool QuadrotorDynamics::updateInertiaMarix() {
   // J_ = mass_ / 12.0 * arm_l_ * arm_l_ * Vector<3>(4.5, 4.5, 7).asDiagonal();
   // J_inv_ = J_.inverse();
   // We want the inertia matrix values to be [0.0025, 0.0021, 0.0043], hard coded for now
-  J_ = Vector<3>(0.0025, 0.0021, 0.0043).asDiagonal();
+  float offset_ratio = mass_ - 0.752;
+  offset_ratio = offset_ratio / mass_;
+  float offset_multiplier = 1.0 - offset_ratio;
+  J_ = Vector<3>(0.0021*offset_multiplier, 0.0017*offset_multiplier, 0.0039*offset_multiplier).asDiagonal(); //25, 21, 43
   J_inv_ = J_.inverse();
   return true;
 }
