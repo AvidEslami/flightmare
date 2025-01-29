@@ -98,6 +98,7 @@ def main():
                     noptepochs=10,
                     cliprange=0.2,
                     verbose=1,
+                    n_save=5,
                 )
 
                 # tensorboard
@@ -142,6 +143,7 @@ def main():
                     noptepochs=10,
                     cliprange=0.2,
                     verbose=1,
+                    n_save=0
                 )
                 model.load(last_saved)
                 logger.configure(folder=saver.data_dir)
